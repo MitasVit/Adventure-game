@@ -1,0 +1,26 @@
+﻿  Game1.cpp
+D:\C++PROGRAMUJU\Visual studio c++\Game1\Game1.cpp(93,31): warning C4244: =: FLOAT se převádí na LONG; může dojít ke ztrátě dat.
+D:\C++PROGRAMUJU\Visual studio c++\Game1\Game1.cpp(94,29): warning C4244: =: FLOAT se převádí na LONG; může dojít ke ztrátě dat.
+D:\C++PROGRAMUJU\Visual studio c++\Game1\Game1.cpp(95,40): warning C4244: =: FLOAT se převádí na LONG; může dojít ke ztrátě dat.
+D:\C++PROGRAMUJU\Visual studio c++\Game1\Game1.cpp(96,41): warning C4244: =: FLOAT se převádí na LONG; může dojít ke ztrátě dat.
+D:\C++PROGRAMUJU\Visual studio c++\Game1\Game1.cpp(99,31): warning C4244: =: FLOAT se převádí na LONG; může dojít ke ztrátě dat.
+D:\C++PROGRAMUJU\Visual studio c++\Game1\Game1.cpp(100,29): warning C4244: =: FLOAT se převádí na LONG; může dojít ke ztrátě dat.
+D:\C++PROGRAMUJU\Visual studio c++\Game1\Game1.cpp(101,40): warning C4244: =: FLOAT se převádí na LONG; může dojít ke ztrátě dat.
+D:\C++PROGRAMUJU\Visual studio c++\Game1\Game1.cpp(102,41): warning C4244: =: FLOAT se převádí na LONG; může dojít ke ztrátě dat.
+D:\C++PROGRAMUJU\Visual studio c++\Game1\Game1.cpp(983,102): warning C4244: argument: int se převádí na float; může dojít ke ztrátě dat.
+D:\C++PROGRAMUJU\Visual studio c++\Game1\Game1.cpp(983,87): warning C4244: argument: int se převádí na float; může dojít ke ztrátě dat.
+D:\C++PROGRAMUJU\Visual studio c++\Game1\Game1.cpp(983,72): warning C4244: argument: int se převádí na float; může dojít ke ztrátě dat.
+D:\C++PROGRAMUJU\Visual studio c++\Game1\Game1.cpp(983,64): warning C4244: argument: int se převádí na float; může dojít ke ztrátě dat.
+D:\C++PROGRAMUJU\Visual studio c++\Game1\Game1.cpp(986,111): warning C4244: argument: int se převádí na float; může dojít ke ztrátě dat.
+D:\C++PROGRAMUJU\Visual studio c++\Game1\Game1.cpp(986,96): warning C4244: argument: int se převádí na float; může dojít ke ztrátě dat.
+D:\C++PROGRAMUJU\Visual studio c++\Game1\Game1.cpp(986,81): warning C4244: argument: int se převádí na float; může dojít ke ztrátě dat.
+D:\C++PROGRAMUJU\Visual studio c++\Game1\Game1.cpp(986,73): warning C4244: argument: int se převádí na float; může dojít ke ztrátě dat.
+D:\C++PROGRAMUJU\Visual studio c++\Game1\Game1.cpp(989,104): warning C4244: argument: int se převádí na float; může dojít ke ztrátě dat.
+D:\C++PROGRAMUJU\Visual studio c++\Game1\Game1.cpp(989,89): warning C4244: argument: int se převádí na float; může dojít ke ztrátě dat.
+D:\C++PROGRAMUJU\Visual studio c++\Game1\Game1.cpp(989,73): warning C4244: argument: int se převádí na float; může dojít ke ztrátě dat.
+D:\C++PROGRAMUJU\Visual studio c++\Game1\Game1.cpp(989,65): warning C4244: argument: int se převádí na float; může dojít ke ztrátě dat.
+D:\C++PROGRAMUJU\Visual studio c++\Game1\Game1.cpp(995,87): warning C4244: argument: int se převádí na FLOAT; může dojít ke ztrátě dat.
+D:\C++PROGRAMUJU\Visual studio c++\Game1\Game1.cpp(995,72): warning C4244: argument: int se převádí na FLOAT; může dojít ke ztrátě dat.
+D:\C++PROGRAMUJU\Visual studio c++\Game1\Game1.cpp(995,57): warning C4244: argument: int se převádí na FLOAT; může dojít ke ztrátě dat.
+D:\C++PROGRAMUJU\Visual studio c++\Game1\Game1.cpp(995,49): warning C4244: argument: int se převádí na FLOAT; může dojít ke ztrátě dat.
+  Game1.vcxproj -> D:\C++PROGRAMUJU\Visual studio c++\Game1\Debug\Game1.exe
