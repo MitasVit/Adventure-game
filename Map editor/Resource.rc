@@ -1,0 +1,66 @@
+#pragma once
+//Skript prostøedkù vygenerovaný pomocí Microsoft Visual C++
+//
+#include "Resource.h"
+
+#define APSTUDIO_READONLY_SYMBOLS
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generuje se z prostøedku TEXTINCLUDE.
+//
+
+#define APSTUDIO_HIDDEN_SYMBOLS
+#include "windows.h"
+#undef APSTUDIO_HIDDEN_SYMBOLS
+/////////////////////////////////////////////////////////////////////////////
+#undef APSTUDIO_READONLY_SYMBOLS
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_CSY)
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Ikona
+//
+
+// Nejdøív se umístí ikona s nejnižší hodnotou ID, aby se zajistila konzistence
+// ikony aplikace ve všech systémech.
+
+IDI_GAME1    ICON  "img/icon/Game1.ico"
+IDI_SMALL    ICON  "img/icon/small.ico"
+
+POSTAVA      IMAGE "img/lasse.png"
+PODLAHAKAMEN IMAGE "img/podlaha_kamen.png"
+ZED1         IMAGE "img/zed.png"
+TRAVA        IMAGE "img/trava.png"
+KAMEN        IMAGE "img/kamen.png"
+//postava
+PO1          IMAGE "img/postava/1.png"
+PO2          IMAGE "img/postava/2.png"
+PO3          IMAGE "img/postava/3.png"
+PO4          IMAGE "img/postava/4.png"
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Tabulka øetìzcù
+//
+
+STRINGTABLE
+BEGIN
+IDC_GAME1   "GAME1"
+IDS_APP_TITLE       "Game1"
+END
+
+#endif
+/////////////////////////////////////////////////////////////////////////////
+
+
+
+#ifndef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generuje se z prostøedku TEXTINCLUDE.
+//
+
+/////////////////////////////////////////////////////////////////////////////
+#endif    // not APSTUDIO_INVOKED
