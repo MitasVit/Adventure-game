@@ -1,1 +1,2 @@
 D:\C++PROGRAMUJU\Visual studio c++\Game1\x64\Debug\Game1.exe
+D:\C++PROGRAMUJU\Visual studio c++\Adventure Game\x64\Debug\Game1.exe
