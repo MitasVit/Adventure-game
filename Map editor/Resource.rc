@@ -40,6 +40,8 @@ PO2          IMAGE "img/postava/2.png"
 PO3          IMAGE "img/postava/3.png"
 PO4          IMAGE "img/postava/4.png"
 
+MKRYSTAL     IMAGE "img/krystal_m.png"
+
 /////////////////////////////////////////////////////////////////////////////
 //
 // Tabulka øetìzcù

@@ -69,5 +69,8 @@
     <Image Include="img\icon\small.ico">
       <Filter>Soubory zdrojů\img</Filter>
     </Image>
+    <Image Include="img\krystal_m.png">
+      <Filter>Soubory zdrojů\img</Filter>
+    </Image>
   </ItemGroup>
 </Project>
