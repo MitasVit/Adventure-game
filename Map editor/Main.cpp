@@ -72,7 +72,6 @@ EXTERN_C IMAGE_DOS_HEADER __ImageBase;
 int mode = 1;
 int x = 2, y = 2;
 int mom_postava = 1;
-int poc_sebr = 0;
 //y,x
 bool zed[10][17] = { 
 {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
@@ -88,8 +87,12 @@ bool zed[10][17] = {
 enum typ_podlahy {
     trava = 1,
     kamen = 2,
-    nic = 3,
-    krystal = 4
+    nic = 3
+};
+enum typ_predmetu {
+    krystal_m = 1,/*modry*/
+    krystal_c = 2,/*cerveny*/
+    nic_ = 3
 };
 //y, x
 typ_podlahy podlaha[10][17] = { 
@@ -103,6 +106,17 @@ typ_podlahy podlaha[10][17] = {
 {nic,nic,nic,nic,nic,nic,nic,nic,nic,nic,nic,nic,nic,nic,nic,nic,nic}, 
 {nic,nic,nic,nic,nic,nic,nic,nic,nic,nic,nic,nic,nic,nic,nic,nic,nic}, 
 {nic,nic,nic,nic,nic,nic,nic,nic,nic,nic,nic,nic,nic,nic,nic,nic,nic}, };
+typ_predmetu predmety[10][17] = { 
+{nic_,nic_,nic_,nic_,nic_,nic_,nic_,nic_,nic_,nic_, nic_,nic_,nic_,nic_,nic_,nic_,nic_},
+{nic_,nic_,nic_,nic_,nic_,nic_,nic_,nic_,nic_,nic_, nic_,nic_,nic_,nic_,nic_,nic_,nic_},
+{nic_,nic_,nic_,nic_,nic_,nic_,nic_,nic_,nic_,nic_, nic_,nic_,nic_,nic_,nic_,nic_,nic_},
+{nic_,nic_,nic_,nic_,nic_,nic_,nic_,nic_,nic_,nic_, nic_,nic_,nic_,nic_,nic_,nic_,nic_},
+{nic_,nic_,nic_,nic_,nic_,nic_,nic_,nic_,nic_,nic_, nic_,nic_,nic_,nic_,nic_,nic_,nic_},
+{nic_,nic_,nic_,nic_,nic_,nic_,nic_,nic_,nic_,nic_, nic_,nic_,nic_,nic_,nic_,nic_,nic_},
+{nic_,nic_,nic_,nic_,nic_,nic_,nic_,nic_,nic_,nic_, nic_,nic_,nic_,nic_,nic_,nic_,nic_},
+{nic_,nic_,nic_,nic_,nic_,nic_,nic_,nic_,nic_,nic_, nic_,nic_,nic_,nic_,nic_,nic_,nic_},
+{nic_,nic_,nic_,nic_,nic_,nic_,nic_,nic_,nic_,nic_, nic_,nic_,nic_,nic_,nic_,nic_,nic_},
+{nic_,nic_,nic_,nic_,nic_,nic_,nic_,nic_,nic_,nic_, nic_,nic_,nic_,nic_,nic_,nic_,nic_} };
 
 bool Collision(D2D1_RECT_F sprite1, D2D1_RECT_F sprite2, int width, int height)
 {
@@ -202,7 +216,7 @@ private:
 
     ID2D1Bitmap* postava, * podlaha_kamen, * zed_nah/*nahore*/;
     ID2D1Bitmap* pos1, * pos2, * pos3, * pos4, * kamen;//postavy
-    ID2D1Bitmap* trava, *krystal_m;
+    ID2D1Bitmap* trava, *krystal_m, * krystal_c;
 };
 
 DemoApp::DemoApp() :
@@ -222,7 +236,8 @@ DemoApp::DemoApp() :
     pos4(NULL),
     kamen(NULL),
     trava(NULL), 
-    krystal_m(NULL)
+    krystal_m(NULL),
+    krystal_c(NULL)
 {
 }
 
@@ -245,6 +260,7 @@ DemoApp::~DemoApp()
     SafeRelease(&kamen);
     SafeRelease(&trava);
     SafeRelease(&krystal_m);
+    SafeRelease(&krystal_c);
 }
 
 
@@ -823,6 +839,18 @@ HRESULT DemoApp::CreateDeviceResources()
                 &krystal_m
             );
         }
+        if (SUCCEEDED(hr))
+        {
+            hr = LoadResourceBitmap(
+                m_pRenderTarget,
+                m_pWICFactory,
+                L"ckrystal",
+                L"Image",
+                500,
+                500,
+                &krystal_c
+            );
+        }
 
     }
 
@@ -900,11 +928,23 @@ LRESULT CALLBACK DemoApp::WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM
                         else if (t == 2) {
                             podlaha[_y][_x] = typ_podlahy::kamen;
                         }
-                        else if (t == 4) {
-                            podlaha[_y][_x] = typ_podlahy::krystal;
-                        }
                         else {
                             podlaha[_y][_x] = typ_podlahy::nic;
+                        }
+                    }
+                }
+                for (int _y = 0; _y < 10; _y++) {
+                    for (int _x = 0; _x < 17; _x++) {
+                        int t;
+                        in >> t;
+                        if (t == 0) {
+                            predmety[_y][_x] = typ_predmetu::nic_;
+                        }
+                        else if (t == 1) {
+                            predmety[_y][_x] = typ_predmetu::krystal_m;
+                        }
+                        else if (t == 2) {
+                            predmety[_y][_x] = typ_predmetu::krystal_c;
                         }
                     }
                 }
@@ -983,7 +1023,17 @@ LRESULT CALLBACK DemoApp::WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM
                     }
                     else if (mode == 5) {
                         zed[_yy][_xx] = false;
-                        podlaha[_yy][_xx] = typ_podlahy::krystal;
+                        predmety[_yy][_xx] = typ_predmetu::krystal_m;
+                        SendMessage(hwnd, WM_PAINT, 0, 0);
+                    }
+                    else if (mode == 6) {
+                        zed[_yy][_xx] = false;
+                        predmety[_yy][_xx] = typ_predmetu::krystal_c;
+                        SendMessage(hwnd, WM_PAINT, 0, 0);
+                    }
+                    else if (mode == 7) {
+                        zed[_yy][_xx] = false;
+                        predmety[_yy][_xx] = typ_predmetu::nic_;
                         SendMessage(hwnd, WM_PAINT, 0, 0);
                     }
                 }
@@ -1010,9 +1060,17 @@ LRESULT CALLBACK DemoApp::WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM
                     //z pressed - pridani zdi
                     mode = 4;
                 }
-                else  if (GetAsyncKeyState(0x51) & 0x8000) {
-                    //q pressed - pridani krystalu
+                else  if (GetAsyncKeyState(0x4D) & 0x8000) {
+                    //m pressed - pridani modreho krystalu
                     mode = 5;
+                }
+                else  if (GetAsyncKeyState(0x43) & 0x8000) {
+                    //c pressed - pridani cerveneho krystalu
+                    mode = 6;
+                }
+                else  if (GetAsyncKeyState(0x51) & 0x8000) {
+                    //q pressed - smazani krystalu
+                    mode = 7;
                 }
                 else if (GetAsyncKeyState(0x70) & 0x8000) {
                     //key f1
@@ -1052,6 +1110,14 @@ LRESULT CALLBACK DemoApp::WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM
                         for (int _y = 0; _y < 10; _y++) {
                             for (int _x = 0; _x < 17; _x++) {
                                 out << podlaha[_y][_x] << " ";
+                            }
+                            if (_y != 9) {
+                                out << endl;
+                            }
+                        }
+                        for (int _y = 0; _y < 10; _y++) {
+                            for (int _x = 0; _x < 17; _x++) {
+                                out << predmety[_y][_x] << " ";
                             }
                             if (_y != 9) {
                                 out << endl;
@@ -1107,11 +1173,23 @@ LRESULT CALLBACK DemoApp::WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM
                                     else if (t == 2) {
                                         podlaha[_y][_x] = typ_podlahy::kamen;
                                     }
-                                    else if (t == 4) {
-                                        podlaha[_y][_x] = typ_podlahy::krystal;
-                                    }
                                     else {
                                         podlaha[_y][_x] = typ_podlahy::nic;
+                                    }
+                                }
+                            }
+                            for (int _y = 0; _y < 10; _y++) {
+                                for (int _x = 0; _x < 17; _x++) {
+                                    int t;
+                                    in >> t;
+                                    if (t == 0) {
+                                        predmety[_y][_x] == typ_predmetu::nic_;
+                                    }
+                                    else if (t == 1) {
+                                        predmety[_y][_x] == typ_predmetu::krystal_m;
+                                    }
+                                    else if (t == 2) {
+                                        predmety[_y][_x] == typ_predmetu::krystal_c;
                                     }
                                 }
                             }
@@ -1218,15 +1296,15 @@ HRESULT DemoApp::OnRender()
                 else if (podlaha[y][x] == typ_podlahy::kamen) {
                     m_pRenderTarget->DrawBitmap(podlaha_kamen, SRect(x * 80, y * 80, (x * 80) + 80, (y * 80) + 80), 1.0, D2D1_BITMAP_INTERPOLATION_MODE_LINEAR);
                 }
-                else if (podlaha[y][x] == typ_podlahy::krystal) {
-                    //podlaha pro krystal aby nebyla bila - vezme jedno policku vzad
-                    if (podlaha[y][x - 1] == typ_podlahy::trava) {
-                        m_pRenderTarget->DrawBitmap(trava, SRect(x * 80, y * 80, (x * 80) + 80, (y * 80) + 80), 1.0, D2D1_BITMAP_INTERPOLATION_MODE_LINEAR);
-                    }
-                    else if (podlaha[y][x - 1] == typ_podlahy::kamen) {
-                        m_pRenderTarget->DrawBitmap(podlaha_kamen, SRect(x * 80, y * 80, (x * 80) + 80, (y * 80) + 80), 1.0, D2D1_BITMAP_INTERPOLATION_MODE_LINEAR);
-                    }
+
+                if (predmety[y][x] == typ_predmetu::krystal_m) {
                     m_pRenderTarget->DrawBitmap(krystal_m, SRect(x * 80, y * 80, (x * 80) + 80, (y * 80) + 80), 1.0, D2D1_BITMAP_INTERPOLATION_MODE_LINEAR);
+                }
+                else if (predmety[y][x] == typ_predmetu::krystal_c) {
+                    m_pRenderTarget->DrawBitmap(krystal_c, SRect(x * 80, y * 80, (x * 80) + 80, (y * 80) + 80), 1.0, D2D1_BITMAP_INTERPOLATION_MODE_LINEAR);
+                }
+                else {
+
                 }
             }
         }

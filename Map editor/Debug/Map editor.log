@@ -1,2 +1,5 @@
 ﻿  Main.cpp
+D:\C++PROGRAMUJU\Visual studio c++\Map editor\Main.cpp(1186,58): warning C4553: ==: Výsledek výrazu se nepoužívá; nebylo vaším záměrem =?
+D:\C++PROGRAMUJU\Visual studio c++\Map editor\Main.cpp(1189,58): warning C4553: ==: Výsledek výrazu se nepoužívá; nebylo vaším záměrem =?
+D:\C++PROGRAMUJU\Visual studio c++\Map editor\Main.cpp(1192,58): warning C4553: ==: Výsledek výrazu se nepoužívá; nebylo vaším záměrem =?
   Map editor.vcxproj -> D:\C++PROGRAMUJU\Visual studio c++\Map editor\Debug\Map editor.exe

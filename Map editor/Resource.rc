@@ -40,7 +40,12 @@ PO2          IMAGE "img/postava/2.png"
 PO3          IMAGE "img/postava/3.png"
 PO4          IMAGE "img/postava/4.png"
 
-MKRYSTAL     IMAGE "img/krystal_m.png"
+MKRYSTAL     IMAGE "img/krystal_m.png"//modry
+CKRYSTAL     IMAGE "img/krystal_c.png"//cerveny
+
+//nepouzite - zatim
+OKRYSTAL     IMAGE "img/krystal_o.png"//oranzovy
+ZKRYSTAL     IMAGE "img/krystal_z.png"//zeleny
 
 /////////////////////////////////////////////////////////////////////////////
 //
