@@ -27,6 +27,10 @@ https://discord.gg/QByZQEZH
 
 ## Funguje - log:
 
-### 19.01.2021: Map editor i hra funguji, nefunguje posouvani kamery
-### 20.01.2021: Modry krystal funguje
-### 21.01.2021: Modry i cerveny krystal, jde upravovat podlaha pod nimi
+#### 21.01.2021: Oranzove a zelene krystaly
+
+### Verze 1.0 beta:
+#### 21.01.2021: Modry i cerveny krystal, jde upravovat podlaha pod nimi
+#### 20.01.2021: Modry krystal funguje
+#### 19.01.2021: Map editor i hra funguji, nefunguje posouvani kamery
+
