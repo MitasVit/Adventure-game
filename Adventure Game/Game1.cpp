@@ -59,6 +59,7 @@ EXTERN_C IMAGE_DOS_HEADER __ImageBase;
 
 
 int sebr_mk = 0/*pocet sebrani modry krystal*/, sebr_ck = 0/*pocet sebrani cerveny krystal*/;
+int sebr_ok = 0, sebr_zk = 0;
 
 HWND shared;
 int x=2, y=2;
@@ -82,6 +83,8 @@ enum typ_podlahy {
 enum typ_predmetu {
     krystal_m = 1,/*modry*/
     krystal_c = 2,/*cerveny*/
+    krystal_z = 4,/*zeleny*/
+    krystal_o = 5, /*oranzovy*/
     nic_ = 3
 };
 //y, x
@@ -197,7 +200,7 @@ private:
 
     ID2D1Bitmap* postava, *podlaha_kamen, *zed_nah/*nahore*/;
     ID2D1Bitmap* pos1, * pos2, * pos3, * pos4, *kamen;//postavy
-    ID2D1Bitmap* trava, * krystal_m, * krystal_c;
+    ID2D1Bitmap* trava, * krystal_m, * krystal_c, * krystal_z, * krystal_o;
 };
 
 DemoApp::DemoApp() :
@@ -218,7 +221,9 @@ DemoApp::DemoApp() :
     kamen(NULL),
     trava(NULL),
     krystal_m(NULL),
-    krystal_c(NULL)
+    krystal_c(NULL),
+    krystal_o(NULL),
+    krystal_z(NULL)
 {
 }
 
@@ -242,6 +247,8 @@ DemoApp::~DemoApp()
     SafeRelease(&trava);
     SafeRelease(&krystal_m);
     SafeRelease(&krystal_c);
+    SafeRelease(&krystal_o);
+    SafeRelease(&krystal_z);
 }
 
 
@@ -821,6 +828,30 @@ HRESULT DemoApp::CreateDeviceResources()
                     &krystal_c
                 );
             }
+            if (SUCCEEDED(hr))
+            {
+                hr = LoadResourceBitmap(
+                    m_pRenderTarget,
+                    m_pWICFactory,
+                    L"okrystal",
+                    L"Image",
+                    500,
+                    500,
+                    &krystal_o
+                );
+            }
+            if (SUCCEEDED(hr))
+            {
+                hr = LoadResourceBitmap(
+                    m_pRenderTarget,
+                    m_pWICFactory,
+                    L"zkrystal",
+                    L"Image",
+                    500,
+                    500,
+                    &krystal_z
+                );
+            }
 
     }
 
@@ -899,6 +930,18 @@ LRESULT CALLBACK DemoApp::WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM
                     else if (t == 2) {
                         predmety[_y][_x] = typ_predmetu::krystal_c;
                     }
+                    else if (t == 3) {
+                        predmety[_y][_x] = typ_predmetu::nic_;
+                    }
+                    else if (t == 4) {
+                        predmety[_y][_x] = typ_predmetu::krystal_z;
+                    }
+                    else if (t == 5) {
+                        predmety[_y][_x] = typ_predmetu::krystal_o;
+                    }
+                    else {
+                        predmety[_y][_x] = typ_predmetu::nic_;
+                    }
                 }
             }
             in.close();
@@ -956,6 +999,14 @@ LRESULT CALLBACK DemoApp::WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM
                         sebr_ck++;
                         predmety[y][x] = typ_predmetu::nic_;
                     }
+                    else if (predmety[y][x] == typ_predmetu::krystal_o) {
+                        sebr_ok++;
+                        predmety[y][x] = typ_predmetu::nic_;
+                    }
+                    else if (predmety[y][x] == typ_predmetu::krystal_z) {
+                        sebr_zk++;
+                        predmety[y][x] = typ_predmetu::nic_;
+                    }
                     SendMessage(hwnd, WM_PAINT, 0, 0);
                 }
                 else if ((GetAsyncKeyState(0x25) & 0x8000) || (GetAsyncKeyState(0x41) & 0x8000)) {
@@ -970,6 +1021,14 @@ LRESULT CALLBACK DemoApp::WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM
                     }
                     else if (predmety[y][x] == typ_predmetu::krystal_c) {
                         sebr_ck++;
+                        predmety[y][x] = typ_predmetu::nic_;
+                    }
+                    else if (predmety[y][x] == typ_predmetu::krystal_o) {
+                        sebr_ok++;
+                        predmety[y][x] = typ_predmetu::nic_;
+                    }
+                    else if (predmety[y][x] == typ_predmetu::krystal_z) {
+                        sebr_zk++;
                         predmety[y][x] = typ_predmetu::nic_;
                     }
                     SendMessage(hwnd, WM_PAINT, 0, 0);
@@ -988,6 +1047,14 @@ LRESULT CALLBACK DemoApp::WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM
                         sebr_ck++;
                         predmety[y][x] = typ_predmetu::nic_;
                     }
+                    else if (predmety[y][x] == typ_predmetu::krystal_o) {
+                        sebr_ok++;
+                        predmety[y][x] = typ_predmetu::nic_;
+                    }
+                    else if (predmety[y][x] == typ_predmetu::krystal_z) {
+                        sebr_zk++;
+                        predmety[y][x] = typ_predmetu::nic_;
+                    }
                     SendMessage(hwnd, WM_PAINT, 0, 0);
                 }
                 else if ((GetAsyncKeyState(0x26) & 0x8000) || (GetAsyncKeyState(0x57) & 0x8000)) {
@@ -1004,11 +1071,19 @@ LRESULT CALLBACK DemoApp::WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM
                         sebr_ck++;
                         predmety[y][x] = typ_predmetu::nic_;
                     }
+                    else if (predmety[y][x] == typ_predmetu::krystal_o) {
+                        sebr_ok++;
+                        predmety[y][x] = typ_predmetu::nic_;
+                    }
+                    else if (predmety[y][x] == typ_predmetu::krystal_z) {
+                        sebr_zk++;
+                        predmety[y][x] = typ_predmetu::nic_;
+                    }
                      SendMessage(hwnd, WM_PAINT, 0, 0);
                 }
                 else if (GetAsyncKeyState(VK_F2) & 0x8000) {
                     //key f2
-                    string str = "Pocet sebranych krystalu - modre: " + to_string(sebr_mk) + ", cervene: " + to_string(sebr_ck);
+                    string str = "Pocet sebranych krystalu - modre: " + to_string(sebr_mk) + ", cervene: " + to_string(sebr_ck) + ", zelene: " + to_string(sebr_zk) + ", oranzove: " + to_string(sebr_ok);
                     MessageBoxA(NULL, str.c_str(), "Info", MB_OK | MB_ICONINFORMATION);
                 }
                 else if (GetAsyncKeyState(0x4F) & 0x8000) {
@@ -1031,6 +1106,7 @@ LRESULT CALLBACK DemoApp::WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM
                     if (fileNameStr != "") {
                         int startposx, startposy, width, height;
                         if (exist_read_file(fileNameStr.c_str())) {
+                            sebr_ck = 0; sebr_mk = 0; sebr_ok = 0; sebr_zk = 0;
                             ifstream in(fileNameStr.c_str());
                             in >> width;
                             in >> height;
@@ -1075,6 +1151,15 @@ LRESULT CALLBACK DemoApp::WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM
                                     }
                                     else if (t == 2) {
                                         predmety[_y][_x] = typ_predmetu::krystal_c;
+                                    }
+                                    else if (t == 3) {
+                                        predmety[_y][_x] = typ_predmetu::nic_;
+                                    }
+                                    else if (t == 4) {
+                                        predmety[_y][_x] = typ_predmetu::krystal_z;
+                                    }
+                                    else if (t == 5) {
+                                        predmety[_y][_x] = typ_predmetu::krystal_o;
                                     }
                                     else {
                                         predmety[_y][_x] = typ_predmetu::nic_;
@@ -1190,6 +1275,12 @@ HRESULT DemoApp::OnRender()
                 }
                 else if (predmety[y][x] == typ_predmetu::krystal_c) {
                     m_pRenderTarget->DrawBitmap(krystal_c, SRect(x * 80, y * 80, (x * 80) + 80, (y * 80) + 80), 1.0, D2D1_BITMAP_INTERPOLATION_MODE_LINEAR);
+                }
+                else if (predmety[y][x] == typ_predmetu::krystal_z) {
+                    m_pRenderTarget->DrawBitmap(krystal_z, SRect(x * 80, y * 80, (x * 80) + 80, (y * 80) + 80), 1.0, D2D1_BITMAP_INTERPOLATION_MODE_LINEAR);
+                }
+                else if (predmety[y][x] == typ_predmetu::krystal_o) {
+                    m_pRenderTarget->DrawBitmap(krystal_o, SRect(x * 80, y * 80, (x * 80) + 80, (y * 80) + 80), 1.0, D2D1_BITMAP_INTERPOLATION_MODE_LINEAR);
                 }
                 else {
 

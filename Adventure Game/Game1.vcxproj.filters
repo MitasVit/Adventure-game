@@ -75,5 +75,11 @@
     <Image Include="img\krystal_c.png">
       <Filter>Soubory zdrojů\images and icons</Filter>
     </Image>
+    <Image Include="img\krystal_o.png">
+      <Filter>Soubory zdrojů\images and icons</Filter>
+    </Image>
+    <Image Include="img\krystal_z.png">
+      <Filter>Soubory zdrojů\images and icons</Filter>
+    </Image>
   </ItemGroup>
 </Project>

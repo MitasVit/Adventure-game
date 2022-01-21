@@ -156,6 +156,8 @@
     <Image Include="img\kamen.png" />
     <Image Include="img\krystal_c.png" />
     <Image Include="img\krystal_m.png" />
+    <Image Include="img\krystal_o.png" />
+    <Image Include="img\krystal_z.png" />
     <Image Include="img\lasse.png" />
     <Image Include="img\podlaha_kamen.png" />
     <Image Include="img\postava\1.png" />
