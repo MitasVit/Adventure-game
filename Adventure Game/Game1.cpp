@@ -693,19 +693,6 @@ HRESULT DemoApp::CreateDeviceResources()
             hr = LoadResourceBitmap(
                 m_pRenderTarget,
                 m_pWICFactory,
-                L"postava",
-                L"Image",
-                550,
-                660,
-                &postava
-            );
-        }
-        if (SUCCEEDED(hr))
-        {
-            // Create a bitmap by loading it from a file.
-            hr = LoadResourceBitmap(
-                m_pRenderTarget,
-                m_pWICFactory,
                 L"podlahakamen",
                 L"Image",
                 500,
@@ -884,8 +871,8 @@ LRESULT CALLBACK DemoApp::WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM
 
         //nacteni mapy
         int startposx, startposy, width, height;
-        if (exist_read_file("krystal_mapa.txt")) {
-            ifstream in("krystal_mapa.txt");
+        if (exist_read_file("lets_go.txt")) {
+            ifstream in("lets_go.txt");
             in >> width;
             in >> height;
             in >> startposx;
@@ -947,7 +934,7 @@ LRESULT CALLBACK DemoApp::WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM
             in.close();
         }
         else {
-            MessageBox(NULL, L"krystal_mapa.txt neexistuje - je to defaultni mapa, zkontrolujte popripade otverte s o", L"info", MB_OK | MB_ICONERROR);
+            MessageBox(NULL, L"lets_go.txt neexistuje - je to defaultni mapa, zkontrolujte popripade otverte s o", L"info", MB_OK | MB_ICONERROR);
         }
         SendMessage(hwnd, WM_PAINT, 0, 0);
     }
@@ -1112,6 +1099,8 @@ LRESULT CALLBACK DemoApp::WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM
                             in >> height;
                             in >> startposx;
                             in >> startposy;
+                            x = startposx;
+                            y = startposy;
                             for (int _y = 0; _y < 10; _y++) {
                                 for (int _x = 0; _x < 17; _x++) {
                                     int _t;
@@ -1208,6 +1197,11 @@ LRESULT CALLBACK DemoApp::WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM
     return result;
 }
 
+void IntInfo(int i) {
+    string t = to_string(i);
+    MessageBoxA(NULL, t.c_str(), t.c_str(), MB_OK);
+}
+
 HRESULT DemoApp::OnRender()
 {
     HRESULT hr = S_OK;
@@ -1225,39 +1219,145 @@ HRESULT DemoApp::OnRender()
         int width = static_cast<int>(rtSize.width);
         int height = static_cast<int>(rtSize.height);
 
-        /*for (int x = 0; x < width; x += 40)
-        {
-            m_pRenderTarget->DrawLine(
-                D2D1::Point2F(static_cast<FLOAT>(x), 0.0f),
-                D2D1::Point2F(static_cast<FLOAT>(x), rtSize.height),
-                m_pLightSlateGrayBrush,
-                0.5f
-            );
+        //pocet zobrazenych ctvercu - pro vetsi rychlost
+        /*
+        int zobraz_sirka = round(width / 80)+1;
+        int zobraz_vyska = round(height / 80)+1;
+        */
+        int hrac_x = round(((width - 80) / 2) / 80) * 80;
+        int hrac_y = round(((height - 80) / 2) / 80) * 80;
+
+        int hrac_x2 = (hrac_x / 80) - x;
+        int hrac_y2 = (hrac_y / 80) - y;
+
+        /*for (int _x = 0; _x < 17; _x++) {
+            for (int _y = 0; _y < 10; _y++) {
+                if (zed[_y+hrac_y2][_x+hrac_x2] == true) {
+                    m_pRenderTarget->DrawBitmap(kamen, SRect(_x * 80, _y * 80, (_x * 80) + 80, (_y * 80) + 80), 1.0, D2D1_BITMAP_INTERPOLATION_MODE_LINEAR);
+                }
+                else if (podlaha[_y + hrac_y2][_x + hrac_x2] == typ_podlahy::trava) {
+                    m_pRenderTarget->DrawBitmap(trava, SRect(_x * 80, _y * 80, (_x * 80) + 80, (_y * 80) + 80), 1.0, D2D1_BITMAP_INTERPOLATION_MODE_LINEAR);
+                }
+                else if (podlaha[_y + hrac_y2][_x + hrac_x2] == typ_podlahy::kamen) {
+                    m_pRenderTarget->DrawBitmap(podlaha_kamen, SRect(_x * 80, _y * 80, (_x * 80) + 80, (_y * 80) + 80), 1.0, D2D1_BITMAP_INTERPOLATION_MODE_LINEAR);
+                }
+
+                if (predmety[_y + hrac_y2][_x + hrac_x2] == typ_predmetu::krystal_m) {
+                    m_pRenderTarget->DrawBitmap(krystal_m, SRect(_x * 80, _y * 80, (_x * 80) + 80, (_y * 80) + 80), 1.0, D2D1_BITMAP_INTERPOLATION_MODE_LINEAR);
+                }
+                else if (predmety[_y + hrac_y2][_x + hrac_x2] == typ_predmetu::krystal_c) {
+                    m_pRenderTarget->DrawBitmap(krystal_c, SRect(_x * 80, _y * 80, (_x * 80) + 80, (_y * 80) + 80), 1.0, D2D1_BITMAP_INTERPOLATION_MODE_LINEAR);
+                }
+                else if (predmety[_y + hrac_y2][_x + hrac_x2] == typ_predmetu::krystal_z) {
+                    m_pRenderTarget->DrawBitmap(krystal_z, SRect(_x * 80, _y * 80, (_x * 80) + 80, (_y * 80) + 80), 1.0, D2D1_BITMAP_INTERPOLATION_MODE_LINEAR);
+                }
+                else if (predmety[_y + hrac_y2][_x + hrac_x2] == typ_predmetu::krystal_o) {
+                    m_pRenderTarget->DrawBitmap(krystal_o, SRect(_x * 80, _y * 80, (_x * 80) + 80, (_y * 80) + 80), 1.0, D2D1_BITMAP_INTERPOLATION_MODE_LINEAR);
+                }
+                else {
+
+                }
+            }
         }
 
-        for (int y = 0; y < height; y += 40)
-        {
-            m_pRenderTarget->DrawLine(
-                D2D1::Point2F(0.0f, static_cast<FLOAT>(y)),
-                D2D1::Point2F(rtSize.width, static_cast<FLOAT>(y)),
-                m_pLightSlateGrayBrush,
-                0.5f
-            );
-        }*/
-        
-        /*for (int _x = 0; _x < width; _x++) {
-            for (int _y = 0; _y < height; _y++){
-                D2D1_RECT_F podlaha_pos = { _x * 80,_y * 80,(_x * 80) + 80,(_y * 80) + 80 };
-                m_pRenderTarget->DrawBitmap(podlaha_kamen, podlaha_pos, 1.0, D2D1_BITMAP_INTERPOLATION_MODE_LINEAR);
+        if (((hrac_x / 80) - x) == 0 && ((hrac_y / 80) - y) == 0) {
+            for (int _x = 0; _x < 17; _x++) {
+                for (int _y = 0; _y < 10; _y++) {
+                    if (zed[_y][_x] == true) {
+                        m_pRenderTarget->DrawBitmap(kamen, SRect(_x * 80, _y * 80, (_x * 80) + 80, (_y * 80) + 80), 1.0, D2D1_BITMAP_INTERPOLATION_MODE_LINEAR);
+                    }
+                    else if (podlaha[_y][_x] == typ_podlahy::trava) {
+                        m_pRenderTarget->DrawBitmap(trava, SRect(_x * 80, _y * 80, (_x * 80) + 80, (_y * 80) + 80), 1.0, D2D1_BITMAP_INTERPOLATION_MODE_LINEAR);
+                    }
+                    else if (podlaha[_y][_x] == typ_podlahy::kamen) {
+                        m_pRenderTarget->DrawBitmap(podlaha_kamen, SRect(_x * 80, _y * 80, (_x * 80) + 80, (_y * 80) + 80), 1.0, D2D1_BITMAP_INTERPOLATION_MODE_LINEAR);
+                    }
+
+                    if (predmety[_y][_x] == typ_predmetu::krystal_m) {
+                        m_pRenderTarget->DrawBitmap(krystal_m, SRect(_x * 80, _y * 80, (_x * 80) + 80, (_y * 80) + 80), 1.0, D2D1_BITMAP_INTERPOLATION_MODE_LINEAR);
+                    }
+                    else if (predmety[_y][_x] == typ_predmetu::krystal_c) {
+                        m_pRenderTarget->DrawBitmap(krystal_c, SRect(_x * 80, _y * 80, (_x * 80) + 80, (_y * 80) + 80), 1.0, D2D1_BITMAP_INTERPOLATION_MODE_LINEAR);
+                    }
+                    else if (predmety[_y][_x] == typ_predmetu::krystal_z) {
+                        m_pRenderTarget->DrawBitmap(krystal_z, SRect(_x * 80, _y * 80, (_x * 80) + 80, (_y * 80) + 80), 1.0, D2D1_BITMAP_INTERPOLATION_MODE_LINEAR);
+                    }
+                    else if (predmety[_y][_x] == typ_predmetu::krystal_o) {
+                        m_pRenderTarget->DrawBitmap(krystal_o, SRect(_x * 80, _y * 80, (_x * 80) + 80, (_y * 80) + 80), 1.0, D2D1_BITMAP_INTERPOLATION_MODE_LINEAR);
+                    }
+                    else {
+
+                    }
+                }
             }
-        }*/
+        }
+        else if (((hrac_x / 80) - x) > 0 && ((hrac_y / 80) - y) > 0) {
+            for (int _x = 0; _x < 17; _x++) {
+                for (int _y = 0; _y < 10; _y++) {
+                    if (zed[_y+((hrac_y/80)-y)][_x+((hrac_x/80)-x)] == true) {
+                        m_pRenderTarget->DrawBitmap(kamen, SRect(_x * 80, _y * 80, (_x * 80) + 80, (_y * 80) + 80), 1.0, D2D1_BITMAP_INTERPOLATION_MODE_LINEAR);
+                    }
+                    else if (podlaha[_y+ ((hrac_y / 80) - y)][_x+ ((hrac_x / 80) - x)] == typ_podlahy::trava) {
+                        m_pRenderTarget->DrawBitmap(trava, SRect(_x * 80, _y * 80, (_x * 80) + 80, (_y * 80) + 80), 1.0, D2D1_BITMAP_INTERPOLATION_MODE_LINEAR);
+                    }
+                    else if (podlaha[_y+ ((hrac_y / 80) - y)][ _x+((hrac_x / 80) - x)] == typ_podlahy::kamen) {
+                        m_pRenderTarget->DrawBitmap(podlaha_kamen, SRect(_x * 80, _y * 80, (_x * 80) + 80, (_y * 80) + 80), 1.0, D2D1_BITMAP_INTERPOLATION_MODE_LINEAR);
+                    }
+
+                    if (predmety[_y + ((hrac_y / 80) - y)][_x + ((hrac_x / 80) - x)] == typ_predmetu::krystal_m) {
+                        m_pRenderTarget->DrawBitmap(krystal_m, SRect(_x * 80, _y * 80, (_x * 80) + 80, (_y * 80) + 80), 1.0, D2D1_BITMAP_INTERPOLATION_MODE_LINEAR);
+                    }
+                    else if (predmety[_y + ((hrac_y / 80) - y)][_x + ((hrac_x / 80) - x)] == typ_predmetu::krystal_c) {
+                        m_pRenderTarget->DrawBitmap(krystal_c, SRect(_x * 80, _y * 80, (_x * 80) + 80, (_y * 80) + 80), 1.0, D2D1_BITMAP_INTERPOLATION_MODE_LINEAR);
+                    }
+                    else if (predmety[_y + ((hrac_y / 80) - y)][_x + ((hrac_x / 80) - x)] == typ_predmetu::krystal_z) {
+                        m_pRenderTarget->DrawBitmap(krystal_z, SRect(_x * 80, _y * 80, (_x * 80) + 80, (_y * 80) + 80), 1.0, D2D1_BITMAP_INTERPOLATION_MODE_LINEAR);
+                    }
+                    else if (predmety[_y + ((hrac_y / 80) - y)][_x + ((hrac_x / 80) - x)] == typ_predmetu::krystal_o) {
+                        m_pRenderTarget->DrawBitmap(krystal_o, SRect(_x * 80, _y * 80, (_x * 80) + 80, (_y * 80) + 80), 1.0, D2D1_BITMAP_INTERPOLATION_MODE_LINEAR);
+                    }
+                    else {
+
+                    }
+                }
+            }
+        }
+        else if (((hrac_x / 80) - x) < 0 && ((hrac_y / 80) - y) < 0) {
+            for (int _x = ((hrac_x/80)-x); _x < 17; _x++) {
+                for (int _y = ((hrac_y/80)-y); _y < 10; _y++) {
+                    if (zed[_y+ ((hrac_y / 80) - y)][_x+ ((hrac_x / 80) - x)] == true) {
+                        m_pRenderTarget->DrawBitmap(kamen, SRect(_x * 80, _y * 80, (_x * 80) + 80, (_y * 80) + 80), 1.0, D2D1_BITMAP_INTERPOLATION_MODE_LINEAR);
+                    }
+                    else if (podlaha[_y - ((hrac_y / 80) - y)][_x - ((hrac_x / 80) - x)] == typ_podlahy::trava) {
+                        m_pRenderTarget->DrawBitmap(trava, SRect(_x * 80, _y * 80, (_x * 80) + 80, (_y * 80) + 80), 1.0, D2D1_BITMAP_INTERPOLATION_MODE_LINEAR);
+                    }
+                    else if (podlaha[_y - ((hrac_y / 80) - y)][_x - ((hrac_x / 80) - x)] == typ_podlahy::kamen) {
+                        m_pRenderTarget->DrawBitmap(podlaha_kamen, SRect(_x * 80, _y * 80, (_x * 80) + 80, (_y * 80) + 80), 1.0, D2D1_BITMAP_INTERPOLATION_MODE_LINEAR);
+                    }
+
+                    if (predmety[_y - ((hrac_y / 80) - y)][_x - ((hrac_x / 80) - x)] == typ_predmetu::krystal_m) {
+                        m_pRenderTarget->DrawBitmap(krystal_m, SRect(_x * 80, _y * 80, (_x * 80) + 80, (_y * 80) + 80), 1.0, D2D1_BITMAP_INTERPOLATION_MODE_LINEAR);
+                    }
+                    else if (predmety[_y - ((hrac_y / 80) - y)][_x - ((hrac_x / 80) - x)] == typ_predmetu::krystal_c) {
+                        m_pRenderTarget->DrawBitmap(krystal_c, SRect(_x * 80, _y * 80, (_x * 80) + 80, (_y * 80) + 80), 1.0, D2D1_BITMAP_INTERPOLATION_MODE_LINEAR);
+                    }
+                    else if (predmety[_y - ((hrac_y / 80) - y)][_x - ((hrac_x / 80) - x)] == typ_predmetu::krystal_z) {
+                        m_pRenderTarget->DrawBitmap(krystal_z, SRect(_x * 80, _y * 80, (_x * 80) + 80, (_y * 80) + 80), 1.0, D2D1_BITMAP_INTERPOLATION_MODE_LINEAR);
+                    }
+                    else if (predmety[_y - ((hrac_y / 80) - y)][_x - ((hrac_x / 80) - x)] == typ_predmetu::krystal_o) {
+                        m_pRenderTarget->DrawBitmap(krystal_o, SRect(_x * 80, _y * 80, (_x * 80) + 80, (_y * 80) + 80), 1.0, D2D1_BITMAP_INTERPOLATION_MODE_LINEAR);
+                    }
+                    else {
+
+                    }
+                }
+            }
+        }
         
-       /* for (int i = 1; i < 8; i++) {
-            D2D1_RECT_F pos = {400,i*80, 480, (i*80)+80};
-            m_pRenderTarget->DrawBitmap(kamen, pos, 1.0, D2D1_BITMAP_INTERPOLATION_MODE_LINEAR);
-        }*/
+         D2D1_RECT_F postava_pos = SRect(hrac_x, hrac_y, hrac_x+80, hrac_y+80);
+        */
 
-
+        //old
         for (int x = 0; x < 17; x++) {
             for (int y = 0; y < 10; y++) {
                 if (zed[y][x] == true) {
@@ -1287,8 +1387,8 @@ HRESULT DemoApp::OnRender()
                 }
             }
         }
-
         D2D1_RECT_F postava_pos = D2D1::RectF(x * 80, y * 80, (x * 80) + 80, (y * 80) + 80);
+
         if (mom_postava == 1) {
             m_pRenderTarget->DrawBitmap(pos1, postava_pos, 1.0);
         }
