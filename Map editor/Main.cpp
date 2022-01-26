@@ -29,6 +29,8 @@
 #include <commdlg.h>
 
 #pragma comment(lib, "d2d1.lib")
+#pragma comment(lib, "comctl32.lib")
+#pragma comment(lib, "User32.lib")
 
 #include "Resource.h"
 
@@ -57,11 +59,12 @@ inline void SafeRelease(
 #endif
 
 
-
 #ifndef HINST_THISCOMPONENT
 EXTERN_C IMAGE_DOS_HEADER __ImageBase;
 #define HINST_THISCOMPONENT ((HINSTANCE)&__ImageBase)
 #endif
+
+INT_PTR CALLBACK    EditChoose(HWND, UINT, WPARAM, LPARAM);
 
 /*mod pridani / odebrani
 1 - trava
@@ -72,6 +75,7 @@ EXTERN_C IMAGE_DOS_HEADER __ImageBase;
 int mode = 1;
 int x = 2, y = 2;
 int mom_postava = 1;
+
 //y,x
 bool zed[10][17] = { 
 {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
@@ -988,6 +992,7 @@ LRESULT CALLBACK DemoApp::WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM
                     }
                 }
                 in.close();
+        
             }
             else {
                 MessageBox(NULL, L"Error when loading default map.\n 1. Could be deleted.\n 2. Could be moved or demaged.", L"Error", MB_OK | MB_ICONERROR);
@@ -1013,6 +1018,7 @@ LRESULT CALLBACK DemoApp::WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM
             {
                 UINT width = LOWORD(lParam);
                 UINT height = HIWORD(lParam);
+        
                 pDemoApp->OnResize(width, height);
             }
             result = 0;
@@ -1129,6 +1135,10 @@ LRESULT CALLBACK DemoApp::WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM
                     //r pressed - pridani oranzoveho krystalu
                     mode = 9;
                 }
+                else if (GetAsyncKeyState(0x72) & 0x8000) {
+                    //f3
+                    DialogBox(HINST_THISCOMPONENT, MAKEINTRESOURCE(IDD_EDITCHOOSE), hwnd, EditChoose);
+                }
                 else if (GetAsyncKeyState(0x70) & 0x8000) {
                     //key f1
                     std::wstring _1 = to_wstring(mode);
@@ -1240,13 +1250,13 @@ LRESULT CALLBACK DemoApp::WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM
                                     int t;
                                     in >> t;
                                     if (t == 0) {
-                                        predmety[_y][_x] == typ_predmetu::nic_;
+                                        predmety[_y][_x] = typ_predmetu::nic_;
                                     }
                                     else if (t == 1) {
-                                        predmety[_y][_x] == typ_predmetu::krystal_m;
+                                        predmety[_y][_x] = typ_predmetu::krystal_m;
                                     }
                                     else if (t == 2) {
-                                        predmety[_y][_x] == typ_predmetu::krystal_c;
+                                        predmety[_y][_x] = typ_predmetu::krystal_c;
                                     }
                                     else if (t == 4) {
                                         predmety[_y][_x] = typ_predmetu::krystal_z;
@@ -1260,6 +1270,7 @@ LRESULT CALLBACK DemoApp::WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM
                                 }
                             }
                             in.close();
+                    
                         }
                         SendMessage(hwnd, WM_PAINT, 0, 0);
                     }
@@ -1268,6 +1279,7 @@ LRESULT CALLBACK DemoApp::WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM
             case WM_DISPLAYCHANGE:
             {
                 InvalidateRect(hwnd, NULL, FALSE);
+        
             }
             result = 0;
             wasHandled = true;
@@ -1398,6 +1410,7 @@ HRESULT DemoApp::OnRender()
 
 
         hr = m_pRenderTarget->EndDraw();
+
     }
     if (hr == D2DERR_RECREATE_TARGET)
     {
@@ -1411,9 +1424,125 @@ void DemoApp::OnResize(UINT width, UINT height)
 {
     if (m_pRenderTarget)
     {
-        // Note: This method can fail, but it's okay to ignore the
-        // error here, because the error will be returned again
-        // the next time EndDraw is called.
         m_pRenderTarget->Resize(D2D1::SizeU(width, height));
     }
+}
+
+HWND CreateChoose(HWND hwndParent) {
+    // 46, 28, 81, 12
+    int xpos = 46;         
+    int ypos = 28;          
+    int nwidth = 120;      
+    int nheight = 200;
+
+    HWND hWndComboBox = CreateWindow(WC_COMBOBOX, TEXT(""),
+        CBS_DROPDOWN | CBS_HASSTRINGS | WS_CHILD | WS_OVERLAPPED | WS_VISIBLE,
+        xpos, ypos, nwidth, nheight, hwndParent, NULL, HINST_THISCOMPONENT,
+        NULL);
+    TCHAR Planets[9][18] =
+    {
+        TEXT("trava"), TEXT("kamen-podlaha"), TEXT("kamen-zed"), TEXT("nic-podlaha"), TEXT("nic-predmet"), TEXT("krystal cerveny"), TEXT("krystal modry"), TEXT("krystal oranzovy"), TEXT("krystal zeleny")
+    };
+
+    TCHAR A[18];
+    int  k = 0;
+
+    memset(&A, 0, sizeof(A));
+    for (k = 0; k <= 8; k += 1)
+    {
+        wcscpy_s(A, sizeof(A) / sizeof(TCHAR), (TCHAR*)Planets[k]);
+
+        // Add string to combobox.
+        SendMessage(hWndComboBox, (UINT)CB_ADDSTRING, (WPARAM)0, (LPARAM)A);
+    }
+
+    // Send the CB_SETCURSEL message to display an initial item 
+    //  in the selection field  
+    SendMessage(hWndComboBox, CB_SETCURSEL, (WPARAM)2, (LPARAM)0);
+    return hWndComboBox;
+}
+
+void IntInfo(int i) {
+    string t = to_string(i);
+    MessageBoxA(NULL, t.c_str(), t.c_str(), MB_OK);
+}
+
+void mBox(string t, string t2, UINT i) {
+    MessageBoxA(NULL, t.c_str(), t2.c_str(), i);
+}
+
+INT_PTR CALLBACK EditChoose(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
+{
+    UNREFERENCED_PARAMETER(lParam);
+    HWND combo= NULL, check=NULL;
+    switch (message)
+    {
+    case WM_INITDIALOG:
+    {
+        combo = CreateChoose(hDlg);
+        check = GetDlgItem(hDlg, IDC_CHECK1);
+        return (INT_PTR)TRUE;
+    }break;
+    case WM_COMMAND:
+        if (LOWORD(wParam) == IDOK) {
+            if (SendDlgItemMessage(hDlg, IDC_CHECK1,BM_GETCHECK,0,0) == BST_CHECKED) {
+                //clear everything
+                for (int _y = 0; _y < 10; _y++) {
+                    for (int _x = 0; _x < 17; _x++) {
+                        predmety[_y][_x] = typ_predmetu::nic_;
+                        zed[_y][_x] = false;
+                        podlaha[_y][_x] = typ_podlahy::nic;
+                    }
+                }
+                SendMessage(shared, WM_PAINT, 0, 0);
+            }
+            else {
+                //not checked
+            }
+            EndDialog(hDlg, LOWORD(wParam));
+            return (INT_PTR)TRUE;
+        }
+        else if (LOWORD(wParam) == IDC_CANCEL)
+        {
+            EndDialog(hDlg, LOWORD(wParam));
+            return (INT_PTR)TRUE;
+        }
+        if (HIWORD(wParam) == CBN_SELCHANGE)
+        {
+            int ItemIndex = SendMessage((HWND)lParam, (UINT)CB_GETCURSEL,
+                (WPARAM)0, (LPARAM)0);
+            TCHAR  ListItem[256];
+            (TCHAR)SendMessage((HWND)lParam, (UINT)CB_GETLBTEXT,
+                (WPARAM)ItemIndex, (LPARAM)ListItem);
+            if (ItemIndex == 0) {
+                mode = 1;
+            }
+            else if (ItemIndex == 1) {
+                mode = 2;
+            }
+            else if (ItemIndex == 2) {
+                mode = 4;
+            }
+            else if (ItemIndex == 3) {
+                mode = 3;
+            }
+            else if (ItemIndex == 4) {
+                mode = 7;
+            }
+            else if (ItemIndex == 5) {
+                mode = 6;
+            }
+            else if (ItemIndex == 6) {
+                mode = 5;
+            }
+            else if (ItemIndex == 7) {
+                mode = 9;
+            }
+            else if (ItemIndex == 8) {
+                mode = 8;
+            }
+        }
+        break;
+    }
+    return (INT_PTR)FALSE;
 }

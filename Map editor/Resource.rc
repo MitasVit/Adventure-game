@@ -1,73 +1,119 @@
-#pragma once
-//Skript prostøedkù vygenerovaný pomocí Microsoft Visual C++
+// Microsoft Visual C++ generated resource script.
 //
-#include "Resource.h"
+#include "resource.h"
+#include <windows.h>
 
-#define APSTUDIO_READONLY_SYMBOLS
 /////////////////////////////////////////////////////////////////////////////
 //
-// Generuje se z prostøedku TEXTINCLUDE.
+// Icon
 //
 
-#define APSTUDIO_HIDDEN_SYMBOLS
-#include "windows.h"
-#undef APSTUDIO_HIDDEN_SYMBOLS
-/////////////////////////////////////////////////////////////////////////////
-#undef APSTUDIO_READONLY_SYMBOLS
-
-#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_CSY)
+IDI_GAME1               ICON                    "img/icon/Game1.ico"
+IDI_SMALL               ICON                    "img/icon/small.ico"
 
 
 /////////////////////////////////////////////////////////////////////////////
 //
-// Ikona
+// IMAGE
 //
 
-// Nejdøív se umístí ikona s nejnižší hodnotou ID, aby se zajistila konzistence
-// ikony aplikace ve všech systémech.
+POSTAVA                 IMAGE                   "img/lasse.png"
+PODLAHAKAMEN            IMAGE                   "img/podlaha_kamen.png"
+ZED1                    IMAGE                   "img/zed.png"
+TRAVA                   IMAGE                   "img/trava.png"
+KAMEN                   IMAGE                   "img/kamen.png"
 
-IDI_GAME1    ICON  "img/icon/Game1.ico"
-IDI_SMALL    ICON  "img/icon/small.ico"
+PO1                     IMAGE                   "img/postava/1.png"
+PO2                     IMAGE                   "img/postava/2.png"
+PO3                     IMAGE                   "img/postava/3.png"
+PO4                     IMAGE                   "img/postava/4.png"
 
-POSTAVA      IMAGE "img/lasse.png"
-PODLAHAKAMEN IMAGE "img/podlaha_kamen.png"
-ZED1         IMAGE "img/zed.png"
-TRAVA        IMAGE "img/trava.png"
-KAMEN        IMAGE "img/kamen.png"
-//postava
-PO1          IMAGE "img/postava/1.png"
-PO2          IMAGE "img/postava/2.png"
-PO3          IMAGE "img/postava/3.png"
-PO4          IMAGE "img/postava/4.png"
+MKRYSTAL                IMAGE                   "img/krystal_m.png"
+CKRYSTAL                IMAGE                   "img/krystal_c.png"
+OKRYSTAL                IMAGE                   "img/krystal_o.png"
+ZKRYSTAL                IMAGE                   "img/krystal_z.png"
 
-MKRYSTAL     IMAGE "img/krystal_m.png"//modry
-CKRYSTAL     IMAGE "img/krystal_c.png"//cerveny
-
-//nepouzite - zatim
-OKRYSTAL     IMAGE "img/krystal_o.png"//oranzovy
-ZKRYSTAL     IMAGE "img/krystal_z.png"//zeleny
 
 /////////////////////////////////////////////////////////////////////////////
 //
-// Tabulka øetìzcù
+// Dialog
+//
+
+IDD_EDITCHOOSE DIALOGEX 0, 0, 189, 125
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Edit choose"
+FONT 8, "MS Shell Dlg", 0, 0, 0x1
+BEGIN
+DEFPUSHBUTTON   "OK", IDOK, 139, 111, 50, 14, WS_GROUP
+CONTROL         "clear everything", IDC_CHECK1, "Button", BS_AUTOCHECKBOX | WS_TABSTOP, 27, 86, 68, 10
+//COMBOBOX        IDC_COMBO1, 46, 28, 81, 12, CBS_DROPDOWN | CBS_SORT | WS_VSCROLL | WS_TABSTOP
+LTEXT           "Edit:", IDC_STATIC, 27, 31, 16, 8
+PUSHBUTTON      "Cancel", IDC_CANCEL, 91, 111, 50, 14
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// DESIGNINFO
+//
+
+#ifdef APSTUDIO_INVOKED
+GUIDELINES DESIGNINFO
+BEGIN
+IDD_EDITCHOOSE, DIALOG
+BEGIN
+RIGHTMARGIN, 175
+BOTTOMMARGIN, 97
+END
+END
+#endif    // APSTUDIO_INVOKED
+
+
+#ifdef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// TEXTINCLUDE
+//
+
+1 TEXTINCLUDE
+BEGIN
+"resource.h\0"
+END
+
+2 TEXTINCLUDE
+BEGIN
+"\0"
+END
+
+3 TEXTINCLUDE
+BEGIN
+"\r\n"
+"\0"
+END
+
+#endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// String Table
 //
 
 STRINGTABLE
 BEGIN
-IDC_GAME1   "GAME1"
-IDS_APP_TITLE       "Game1"
+IDS_APP_TITLE           "Game1"
+IDC_GAME1               "GAME1"
 END
-
-#endif
-/////////////////////////////////////////////////////////////////////////////
 
 
 
 #ifndef APSTUDIO_INVOKED
 /////////////////////////////////////////////////////////////////////////////
 //
-// Generuje se z prostøedku TEXTINCLUDE.
+// Generated from the TEXTINCLUDE 3 resource.
 //
+
 
 /////////////////////////////////////////////////////////////////////////////
 #endif    // not APSTUDIO_INVOKED
+
