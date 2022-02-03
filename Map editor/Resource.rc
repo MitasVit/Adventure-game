@@ -17,9 +17,9 @@ IDI_SMALL               ICON                    "img/icon/small.ico"
 // IMAGE
 //
 
-POSTAVA                 IMAGE                   "img/lasse.png"
+
 PODLAHAKAMEN            IMAGE                   "img/podlaha_kamen.png"
-ZED1                    IMAGE                   "img/zed.png"
+ZED2                    IMAGE                   "img/kamen2.png"
 TRAVA                   IMAGE                   "img/trava.png"
 KAMEN                   IMAGE                   "img/kamen.png"
 
@@ -32,6 +32,13 @@ MKRYSTAL                IMAGE                   "img/krystal_m.png"
 CKRYSTAL                IMAGE                   "img/krystal_c.png"
 OKRYSTAL                IMAGE                   "img/krystal_o.png"
 ZKRYSTAL                IMAGE                   "img/krystal_z.png"
+ZLKRYSTAL                IMAGE                   "img/krystal_zl.png"
+
+MORB                IMAGE                   "img/orb_m.png"
+CORB                IMAGE                   "img/orb_c.png"
+OORB                IMAGE                   "img/orb_o.png"
+ZORB                IMAGE                   "img/orb_z.png"
+ZLORB                IMAGE                   "img/orb_zl.png"
 
 
 /////////////////////////////////////////////////////////////////////////////

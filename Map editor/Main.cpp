@@ -76,18 +76,23 @@ int mode = 1;
 int x = 2, y = 2;
 int mom_postava = 1;
 
+string adventure_game_path = "";
 //y,x
-bool zed[10][17] = { 
-{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
-{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
-{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
-{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}, 
-{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}, 
-{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}, 
-{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}, 
-{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}, 
-{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}, 
-{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0} };
+enum typ_zdi {
+    kamen_ = 1,
+    kamen_o = 2,
+    nic__ = 3
+};
+typ_zdi zed[10][17] = { {nic__, nic__, nic__, nic__, nic__, nic__, nic__,nic__, nic__,nic__,nic__,nic__,nic__,nic__,nic__,nic__,nic__},
+               {nic__, nic__, nic__, nic__, nic__, nic__, nic__,nic__, nic__,nic__,nic__,nic__,nic__,nic__,nic__,nic__,nic__},
+               {nic__, nic__, nic__, nic__, nic__, nic__, nic__,nic__, nic__,nic__,nic__,nic__,nic__,nic__,nic__,nic__,nic__},
+                {nic__, nic__, nic__, nic__, nic__, nic__, nic__,nic__, nic__,nic__,nic__,nic__,nic__,nic__,nic__,nic__,nic__},
+               {nic__, nic__, nic__, nic__, nic__, nic__, nic__,nic__, nic__,nic__,nic__,nic__,nic__,nic__,nic__,nic__,nic__},
+              {nic__, nic__, nic__, nic__, nic__, nic__, nic__,nic__, nic__,nic__,nic__,nic__,nic__,nic__,nic__,nic__,nic__},
+               {nic__, nic__, nic__, nic__, nic__, nic__, nic__,nic__, nic__,nic__,nic__,nic__,nic__,nic__,nic__,nic__,nic__},
+                {nic__, nic__, nic__, nic__, nic__, nic__, nic__,nic__, nic__,nic__,nic__,nic__,nic__,nic__,nic__,nic__,nic__},
+                {nic__, nic__, nic__, nic__, nic__, nic__, nic__,nic__, nic__,nic__,nic__,nic__,nic__,nic__,nic__,nic__,nic__}, };
+
 enum typ_podlahy {
     trava = 1,
     kamen = 2,
@@ -98,6 +103,13 @@ enum typ_predmetu {
     krystal_c = 2,/*cerveny*/
     krystal_z = 4,/*zeleny*/
     krystal_o = 5, /*oranzovy*/
+    krystal_zl = 6,/*zluty*/
+    //orby
+    orb_m = 7,/*modry*/
+    orb_c = 8,/*cerveny*/
+    orb_z = 9,/*zeleny*/
+    orb_o = 10, /*oranzovy*/
+    orb_zl = 11,/*zluty*/
     nic_ = 3
 };
 //y, x
@@ -146,6 +158,17 @@ bool Collision(D2D1_RECT_F sprite1, D2D1_RECT_F sprite2, int width, int height)
 //left = x, top = y, right = x+width, down = y+height
 D2D1_RECT_F SRect(float left, float top, float right, float down) {
     return D2D1::RectF(left, top, right, down);
+}
+
+void eraseSubStr(std::string& mainStr, const std::string& toErase)
+{
+    // Search for the substring in string
+    size_t pos = mainStr.find(toErase);
+    if (pos != std::string::npos)
+    {
+        // If found then erase it from string
+        mainStr.erase(pos, toErase.length());
+    }
 }
 
 inline bool exist_read_file(const std::string& name) {
@@ -221,8 +244,10 @@ private:
     ID2D1SolidColorBrush* m_pBrush1;
 
     ID2D1Bitmap* postava, * podlaha_kamen, * zed_nah/*nahore*/;
-    ID2D1Bitmap* pos1, * pos2, * pos3, * pos4, * kamen;//postavy
-    ID2D1Bitmap* trava, *krystal_m, * krystal_c, * krystal_z, *krystal_o;
+    ID2D1Bitmap* pos1, * pos2, * pos3, * pos4, * kamen, *kamen2, *trava;
+
+    ID2D1Bitmap *krystal_m, * krystal_c, * krystal_z, *krystal_o, *krystal_zl;//krystaly
+    ID2D1Bitmap* orb_m, * orb_c, * orb_z, * orb_o, * orb_zl;//orby
 };
 
 DemoApp::DemoApp() :
@@ -245,7 +270,14 @@ DemoApp::DemoApp() :
     krystal_m(NULL),
     krystal_c(NULL),
     krystal_o(NULL),
-    krystal_z(NULL)
+    krystal_z(NULL),
+    krystal_zl(NULL),
+    kamen2(NULL),
+    orb_m(NULL),
+    orb_c(NULL),
+    orb_o(NULL),
+    orb_z(NULL),
+    orb_zl(NULL)
 {
 }
 
@@ -271,6 +303,13 @@ DemoApp::~DemoApp()
     SafeRelease(&krystal_c);
     SafeRelease(&krystal_z);
     SafeRelease(&krystal_o);
+    SafeRelease(&krystal_zl);
+    SafeRelease(&kamen2);
+    SafeRelease(&orb_m);
+    SafeRelease(&orb_c);
+    SafeRelease(&orb_z);
+    SafeRelease(&orb_o);
+    SafeRelease(&orb_zl);
 }
 
 
@@ -726,37 +765,11 @@ HRESULT DemoApp::CreateDeviceResources()
             hr = LoadResourceBitmap(
                 m_pRenderTarget,
                 m_pWICFactory,
-                L"postava",
-                L"Image",
-                550,
-                660,
-                &postava
-            );
-        }
-        if (SUCCEEDED(hr))
-        {
-            // Create a bitmap by loading it from a file.
-            hr = LoadResourceBitmap(
-                m_pRenderTarget,
-                m_pWICFactory,
                 L"podlahakamen",
                 L"Image",
                 500,
                 500,
                 &podlaha_kamen
-            );
-        }
-        if (SUCCEEDED(hr))
-        {
-            // Create a bitmap by loading it from a file.
-            hr = LoadResourceBitmap(
-                m_pRenderTarget,
-                m_pWICFactory,
-                L"zed1",
-                L"Image",
-                500,
-                500,
-                &zed_nah
             );
         }
         if (SUCCEEDED(hr))
@@ -885,6 +898,90 @@ HRESULT DemoApp::CreateDeviceResources()
                 &krystal_z
             );
         }
+        if (SUCCEEDED(hr))
+        {
+            hr = LoadResourceBitmap(
+                m_pRenderTarget,
+                m_pWICFactory,
+                L"zlkrystal",
+                L"Image",
+                500,
+                500,
+                &krystal_zl
+            );
+        }
+        if (SUCCEEDED(hr))
+        {
+            hr = LoadResourceBitmap(
+                m_pRenderTarget,
+                m_pWICFactory,
+                L"zed2",
+                L"Image",
+                500,
+                500,
+                &kamen2
+            );
+        }
+        if (SUCCEEDED(hr))
+        {
+            hr = LoadResourceBitmap(
+                m_pRenderTarget,
+                m_pWICFactory,
+                L"morb",
+                L"Image",
+                500,
+                500,
+                &orb_m
+            );
+        }
+        if (SUCCEEDED(hr))
+        {
+            hr = LoadResourceBitmap(
+                m_pRenderTarget,
+                m_pWICFactory,
+                L"corb",
+                L"Image",
+                500,
+                500,
+                &orb_c
+            );
+        }
+        if (SUCCEEDED(hr))
+        {
+            hr = LoadResourceBitmap(
+                m_pRenderTarget,
+                m_pWICFactory,
+                L"oorb",
+                L"Image",
+                500,
+                500,
+                &orb_o
+            );
+        }
+        if (SUCCEEDED(hr))
+        {
+            hr = LoadResourceBitmap(
+                m_pRenderTarget,
+                m_pWICFactory,
+                L"zorb",
+                L"Image",
+                500,
+                500,
+                &orb_z
+            );
+        }
+        if (SUCCEEDED(hr))
+        {
+            hr = LoadResourceBitmap(
+                m_pRenderTarget,
+                m_pWICFactory,
+                L"zlorb",
+                L"Image",
+                500,
+                500,
+                &orb_zl
+            );
+        }
 
     }
 
@@ -945,10 +1042,13 @@ LRESULT CALLBACK DemoApp::WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM
                         int _t;
                         in >> _t;
                         if (_t == 1) {
-                            zed[_y][_x] = true;
+                            zed[_y][_x] = typ_zdi::kamen_;
+                        }
+                        else if (_t == 2) {
+                            zed[_y][_x] = typ_zdi::kamen_o;
                         }
                         else {
-                            zed[_y][_x] = false;
+                            zed[_y][_x] = typ_zdi::nic__;
                         }
                     }
                 }
@@ -985,6 +1085,24 @@ LRESULT CALLBACK DemoApp::WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM
                         }
                         else if (t == 5) {
                             predmety[_y][_x] = typ_predmetu::krystal_o;
+                        }
+                        else if (t == 6) {
+                            predmety[_y][_x] = typ_predmetu::krystal_zl;
+                        }
+                        else if (t == 7) {
+                            predmety[_y][_x] = typ_predmetu::orb_m;
+                        }
+                        else if (t == 8) {
+                            predmety[_y][_x] = typ_predmetu::orb_c;
+                        }
+                        else if (t == 9) {
+                            predmety[_y][_x] = typ_predmetu::orb_z;
+                        }
+                        else if (t == 10) {
+                            predmety[_y][_x] = typ_predmetu::orb_o;
+                        }
+                        else if (t == 11) {
+                            predmety[_y][_x] = typ_predmetu::orb_zl;
                         }
                         else {
                             predmety[_y][_x] = typ_predmetu::nic_;
@@ -1047,48 +1165,84 @@ LRESULT CALLBACK DemoApp::WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM
                     int _xx = round(_x);
                     int _yy = round(_y);
                     if (mode == 1) {
-                        zed[_yy][_xx] = false;
+                        //zed[_yy][_xx] = typ_zdi::nic__;
                         podlaha[_yy][_xx] = typ_podlahy::trava;
                         SendMessage(hwnd, WM_PAINT, 0, 0);
                     }
                     else if (mode == 2) {
-                        zed[_yy][_xx] = false;
+                        zed[_yy][_xx] = typ_zdi::nic__;
                         podlaha[_yy][_xx] = typ_podlahy::kamen;
                         SendMessage(hwnd, WM_PAINT, 0, 0);
                     }
                     else if (mode == 3) {
-                        zed[_yy][_xx] = false;
+                        zed[_yy][_xx] = typ_zdi::nic__;
                         podlaha[_yy][_xx] = typ_podlahy::nic;
                         SendMessage(hwnd, WM_PAINT, 0, 0);
                     }
                     else if (mode == 4) {
-                        zed[_yy][_xx] = true;
-                        podlaha[_yy][_xx] = typ_podlahy::nic;
+                        zed[_yy][_xx] = typ_zdi::kamen_;
+                        //podlaha[_yy][_xx] = typ_podlahy::nic;
+                        predmety[_yy][_xx] = typ_predmetu::nic_;
                         SendMessage(hwnd, WM_PAINT, 0, 0);
                     }
                     else if (mode == 5) {
-                        zed[_yy][_xx] = false;
+                        zed[_yy][_xx] = typ_zdi::nic__;
                         predmety[_yy][_xx] = typ_predmetu::krystal_m;
                         SendMessage(hwnd, WM_PAINT, 0, 0);
                     }
                     else if (mode == 6) {
-                        zed[_yy][_xx] = false;
+                        zed[_yy][_xx] = typ_zdi::nic__;
                         predmety[_yy][_xx] = typ_predmetu::krystal_c;
                         SendMessage(hwnd, WM_PAINT, 0, 0);
                     }
                     else if (mode == 7) {
-                        zed[_yy][_xx] = false;
+                        zed[_yy][_xx] = typ_zdi::nic__;
                         predmety[_yy][_xx] = typ_predmetu::nic_;
                         SendMessage(hwnd, WM_PAINT, 0, 0);
                     }
                     else if (mode == 8) {
-                        zed[_yy][_xx] = false;
+                        zed[_yy][_xx] = typ_zdi::nic__;
                         predmety[_yy][_xx] = typ_predmetu::krystal_z;
                         SendMessage(hwnd, WM_PAINT, 0, 0);
                     }
                     else if (mode == 9) {
-                        zed[_yy][_xx] = false;
+                        zed[_yy][_xx] = typ_zdi::nic__;
                         predmety[_yy][_xx] = typ_predmetu::krystal_o;
+                        SendMessage(hwnd, WM_PAINT, 0, 0);
+                    }
+                    else if (mode == 10) {
+                        zed[_yy][_xx] = typ_zdi::nic__;
+                        predmety[_yy][_xx] = typ_predmetu::krystal_zl;
+                        SendMessage(hwnd, WM_PAINT, 0, 0);
+                    }
+                    else if (mode == 11) {
+                        zed[_yy][_xx] = typ_zdi::kamen_o;
+                        predmety[_yy][_xx] = typ_predmetu::nic_;
+                        SendMessage(hwnd, WM_PAINT, 0, 0);
+                    }
+                    else if (mode == 12) {
+                        zed[_yy][_xx] = typ_zdi::nic__;
+                        predmety[_yy][_xx] = typ_predmetu::orb_m;
+                        SendMessage(hwnd, WM_PAINT, 0, 0);
+                    }
+                    else if (mode == 13) {
+                        zed[_yy][_xx] = typ_zdi::nic__;
+                        predmety[_yy][_xx] = typ_predmetu::orb_c;
+                        SendMessage(hwnd, WM_PAINT, 0, 0);
+                    }
+                    else if (mode == 14) {
+                        zed[_yy][_xx] = typ_zdi::nic__;
+                        predmety[_yy][_xx] = typ_predmetu::orb_o;
+                        SendMessage(hwnd, WM_PAINT, 0, 0);
+                    }
+                    else if (mode == 15) {
+                        zed[_yy][_xx] = typ_zdi::nic__;
+                        predmety[_yy][_xx] = typ_predmetu::orb_z;
+                        SendMessage(hwnd, WM_PAINT, 0, 0);
+                    }
+                    else if (mode == 16) {
+                        zed[_yy][_xx] = typ_zdi::nic__;
+                        predmety[_yy][_xx] = typ_predmetu::orb_zl;
                         SendMessage(hwnd, WM_PAINT, 0, 0);
                     }
                 }
@@ -1135,10 +1289,125 @@ LRESULT CALLBACK DemoApp::WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM
                     //r pressed - pridani oranzoveho krystalu
                     mode = 9;
                 }
+                else  if (GetAsyncKeyState(0x44) & 0x8000) {
+                    //d pressed - pridani zluteho krystalu
+                    mode = 10;
+                }
+                else if (GetAsyncKeyState(0x41) & 0x8000) {
+                    //a pressed - pridani kamenu s ornamentem
+                    mode = 11;
+                }
+                else if (GetAsyncKeyState(0x30) & 0x8000) {
+                    //0 pressed - pridani moderho orbu
+                    mode = 12;
+                }
+                else if (GetAsyncKeyState(0x31) & 0x8000) {
+                    //1 pressed - pridani cerveneho orbu
+                    mode = 13;
+                }
+                else if (GetAsyncKeyState(0x32) & 0x8000) {
+                    //2 pressed - pridani zeleneho orbu
+                    mode = 15;
+                }
+                else if (GetAsyncKeyState(0x33) & 0x8000) {
+                    //3 pressed - pridani oranzoveho orbu
+                    mode = 14;
+                }
+                else if (GetAsyncKeyState(0x34) & 0x8000) {
+                    //4 pressed - pridani zluteho orbu
+                    mode = 16;
+                }
+                else if (GetAsyncKeyState(0x73) & 0x8000) {
+                    //f4 test this map
+                    OPENFILENAMEA ofn3;
+                    char fileName[MAX_PATH] = "";
+                    ZeroMemory(&ofn3, sizeof(ofn3));
+                    ofn3.lStructSize = sizeof(OPENFILENAME);
+                    ofn3.hwndOwner = shared;
+                    ofn3.lpstrFilter = "Adventure Game(.exe)\0Game1.exe\0Apps\0*.exe";
+                    ofn3.lpstrFile = fileName;
+                    ofn3.nMaxFile = MAX_PATH;
+                    ofn3.Flags = OFN_EXPLORER | OFN_FILEMUSTEXIST | OFN_HIDEREADONLY;
+                    ofn3.lpstrDefExt = "";
+                    ofn3.lpstrTitle = "Set where is Adventure Game";
+
+                    string fileNameStr;
+                    if (GetOpenFileNameA(&ofn3)) {
+                        fileNameStr = ofn3.lpstrFile;
+                    }
+                    if (fileNameStr != "") {
+                        if (exist_read_file(fileNameStr.c_str())) {
+                            adventure_game_path = fileNameStr;
+                            OPENFILENAMEA ofn2;
+                            char fileName[MAX_PATH] = "";
+                            ZeroMemory(&ofn2, sizeof(ofn2));
+                            ofn2.lStructSize = sizeof(OPENFILENAME);
+                            ofn2.hwndOwner = shared;
+                            ofn2.lpstrFilter = "Map files(*.txt)\0*.txt";
+                            ofn2.lpstrFile = fileName;
+                            ofn2.nMaxFile = MAX_PATH;
+                            ofn2.Flags = OFN_EXPLORER;
+                            ofn2.lpstrDefExt = "";
+                            ofn3.lpstrTitle = "Continous save for your map";
+
+                            fileNameStr = "";
+                            if (GetSaveFileNameA(&ofn2))
+                                fileNameStr = fileName;
+                            if (fileNameStr != "") {
+                                    ofstream out(fileNameStr.c_str());
+                                    //width, height, posx,posy, zdi, podlaha
+                                    out << 10 << " " << 17 << endl;//velikost
+                                    out << 2 << " " << 2 << endl;//startpos
+                                    for (int _y = 0; _y < 10; _y++) {
+                                        for (int _x = 0; _x < 17; _x++) {
+                                            out << zed[_y][_x] << " ";
+                                        }
+                                        if (_y != 9) {
+                                            out << endl;
+                                        }
+                                    }
+                                    out << endl;
+                                    for (int _y = 0; _y < 10; _y++) {
+                                        for (int _x = 0; _x < 17; _x++) {
+                                            out << podlaha[_y][_x] << " ";
+                                        }
+                                        if (_y != 9) {
+                                            out << endl;
+                                        }
+                                    }
+                                    for (int _y = 0; _y < 10; _y++) {
+                                        for (int _x = 0; _x < 17; _x++) {
+                                            out << predmety[_y][_x] << " ";
+                                        }
+                                        if (_y != 9) {
+                                            out << endl;
+                                        }
+                                    }
+                                    out.close();
+                                    string path = adventure_game_path;
+                                    eraseSubStr(path, "\Game1.exe");
+                                    ofstream bash("run.bat");
+                                    bash << "cd \"" + path + "\"" <<endl;
+                                    bash << "Game1.exe -path \"" << fileNameStr << "\"" << endl;
+                                   // bash << "PAUSE" << endl;
+                                    bash.close();
+                                    system("run.bat");
+                                    remove("run.bat");
+                                   
+                            }
+                        }
+                        else {
+                            MessageBox(NULL, L"Some error occurted, when try to open Adventure Game.", L"Error", MB_OK | MB_ICONERROR);
+                        }
+                    }
+                }
                 else if (GetAsyncKeyState(0x72) & 0x8000) {
                     //f3
                     DialogBox(HINST_THISCOMPONENT, MAKEINTRESOURCE(IDD_EDITCHOOSE), hwnd, EditChoose);
                 }
+                /*else if () {
+                    //f4 - open Adventure game with this map
+                }*/
                 else if (GetAsyncKeyState(0x70) & 0x8000) {
                     //key f1
                     std::wstring _1 = to_wstring(mode);
@@ -1146,19 +1415,19 @@ LRESULT CALLBACK DemoApp::WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM
                 }
                 else  if (GetAsyncKeyState(0x53) & 0x8000) {
                     //s pressed - ulozeni
-                    OPENFILENAMEA ofn;
+                    OPENFILENAMEA ofn2;
                     char fileName[MAX_PATH] = "";
-                    ZeroMemory(&ofn, sizeof(ofn));
-                    ofn.lStructSize = sizeof(OPENFILENAME);
-                    ofn.hwndOwner = shared;
-                    ofn.lpstrFilter = "Map files(*.txt)\0*.txt";
-                    ofn.lpstrFile = fileName;
-                    ofn.nMaxFile = MAX_PATH;
-                    ofn.Flags = OFN_EXPLORER;
-                    ofn.lpstrDefExt = "";
+                    ZeroMemory(&ofn2, sizeof(ofn2));
+                    ofn2.lStructSize = sizeof(OPENFILENAME);
+                    ofn2.hwndOwner = shared;
+                    ofn2.lpstrFilter = "Map files(*.txt)\0*.txt";
+                    ofn2.lpstrFile = fileName;
+                    ofn2.nMaxFile = MAX_PATH;
+                    ofn2.Flags = OFN_EXPLORER;
+                    ofn2.lpstrDefExt = "";
 
                     string fileNameStr;
-                    if (GetSaveFileNameA(&ofn))
+                    if (GetSaveFileNameA(&ofn2))
                         fileNameStr = fileName;
                     if (fileNameStr != "") {
                         ofstream out(fileNameStr.c_str());
@@ -1195,19 +1464,19 @@ LRESULT CALLBACK DemoApp::WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM
                 }
                 else if (GetAsyncKeyState(0x4F) & 0x8000) {
                     //o pressed - open mapa
-                    OPENFILENAMEA ofn;
+                    OPENFILENAMEA ofn3;
                     char fileName[MAX_PATH] = "";
-                    ZeroMemory(&ofn, sizeof(ofn));
-                    ofn.lStructSize = sizeof(OPENFILENAME);
-                    ofn.hwndOwner = shared;
-                    ofn.lpstrFilter = "Map files(*.txt)\0*.txt";
-                    ofn.lpstrFile = fileName;
-                    ofn.nMaxFile = MAX_PATH;
-                    ofn.Flags = OFN_EXPLORER | OFN_FILEMUSTEXIST | OFN_HIDEREADONLY;
-                    ofn.lpstrDefExt = "";
+                    ZeroMemory(&ofn3, sizeof(ofn3));
+                    ofn3.lStructSize = sizeof(OPENFILENAME);
+                    ofn3.hwndOwner = shared;
+                    ofn3.lpstrFilter = "Map files(*.txt)\0*.txt";
+                    ofn3.lpstrFile = fileName;
+                    ofn3.nMaxFile = MAX_PATH;
+                    ofn3.Flags = OFN_EXPLORER | OFN_FILEMUSTEXIST | OFN_HIDEREADONLY;
+                    ofn3.lpstrDefExt = "";
 
                     string fileNameStr;
-                    if (GetOpenFileNameA(&ofn)) {
+                    if (GetOpenFileNameA(&ofn3)) {
                         fileNameStr = fileName;
                     }
                     if (fileNameStr != "") {
@@ -1223,10 +1492,13 @@ LRESULT CALLBACK DemoApp::WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM
                                     int _t;
                                     in >> _t;
                                     if (_t == 1) {
-                                        zed[_y][_x] = true;
+                                        zed[_y][_x] = typ_zdi::kamen_;
+                                    }
+                                    else if (_t == 2) {
+                                        zed[_y][_x] = typ_zdi::kamen_o;
                                     }
                                     else {
-                                        zed[_y][_x] = false;
+                                        zed[_y][_x] = typ_zdi::nic__;
                                     }
                                 }
                             }
@@ -1263,6 +1535,24 @@ LRESULT CALLBACK DemoApp::WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM
                                     }
                                     else if (t == 5) {
                                         predmety[_y][_x] = typ_predmetu::krystal_o;
+                                    }
+                                    else if (t == 6) {
+                                        predmety[_y][_x] = typ_predmetu::krystal_zl;
+                                    }
+                                    else if (t == 7) {
+                                        predmety[_y][_x] = typ_predmetu::orb_m;
+                                    }
+                                    else if (t == 8) {
+                                        predmety[_y][_x] = typ_predmetu::orb_c;
+                                    }
+                                    else if (t == 9) {
+                                        predmety[_y][_x] = typ_predmetu::orb_z;
+                                    }
+                                    else if (t == 10) {
+                                        predmety[_y][_x] = typ_predmetu::orb_o;
+                                    }
+                                    else if (t == 11) {
+                                        predmety[_y][_x] = typ_predmetu::orb_zl;
                                     }
                                     else {
                                         predmety[_y][_x] == typ_predmetu::nic_;
@@ -1365,14 +1655,19 @@ HRESULT DemoApp::OnRender()
 
         for (int x = 0; x < 17; x++) {
             for (int y = 0; y < 10; y++) {
-                if (zed[y][x] == true) {
-                    m_pRenderTarget->DrawBitmap(kamen, SRect(x * 80, y * 80, (x * 80) + 80, (y * 80) + 80), 1.0, D2D1_BITMAP_INTERPOLATION_MODE_LINEAR);
-                }
-                else if (podlaha[y][x] == typ_podlahy::trava) {
+
+                if (podlaha[y][x] == typ_podlahy::trava) {
                     m_pRenderTarget->DrawBitmap(trava, SRect(x * 80, y * 80, (x * 80) + 80, (y * 80) + 80), 1.0, D2D1_BITMAP_INTERPOLATION_MODE_LINEAR);
                 }
                 else if (podlaha[y][x] == typ_podlahy::kamen) {
                     m_pRenderTarget->DrawBitmap(podlaha_kamen, SRect(x * 80, y * 80, (x * 80) + 80, (y * 80) + 80), 1.0, D2D1_BITMAP_INTERPOLATION_MODE_LINEAR);
+                }
+
+                //musi byt zvlast jinak by tam bylo bilo - nema pozadi obrazek
+                if (zed[y][x] == typ_zdi::kamen_o) {
+                    m_pRenderTarget->DrawBitmap(kamen2, SRect(x * 80, y * 80, (x * 80) + 80, (y * 80) + 80), 1.0, D2D1_BITMAP_INTERPOLATION_MODE_LINEAR);
+                }else if (zed[y][x] == typ_zdi::kamen_) {
+                    m_pRenderTarget->DrawBitmap(kamen, SRect(x * 80, y * 80, (x * 80) + 80, (y * 80) + 80), 1.0, D2D1_BITMAP_INTERPOLATION_MODE_LINEAR);
                 }
 
                 if (predmety[y][x] == typ_predmetu::krystal_m) {
@@ -1386,6 +1681,24 @@ HRESULT DemoApp::OnRender()
                 }
                 else if (predmety[y][x] == typ_predmetu::krystal_z) {
                     m_pRenderTarget->DrawBitmap(krystal_z, SRect(x * 80, y * 80, (x * 80) + 80, (y * 80) + 80), 1.0, D2D1_BITMAP_INTERPOLATION_MODE_LINEAR);
+                }
+                else if (predmety[y][x] == typ_predmetu::krystal_zl) {
+                    m_pRenderTarget->DrawBitmap(krystal_zl, SRect(x * 80, y * 80, (x * 80) + 80, (y * 80) + 80), 1.0, D2D1_BITMAP_INTERPOLATION_MODE_LINEAR);
+                }
+                else if (predmety[y][x] == typ_predmetu::orb_m) {
+                    m_pRenderTarget->DrawBitmap(orb_m, SRect(x * 80, y * 80, (x * 80) + 80, (y * 80) + 80), 1.0, D2D1_BITMAP_INTERPOLATION_MODE_LINEAR);
+                }
+                else if (predmety[y][x] == typ_predmetu::orb_c) {
+                    m_pRenderTarget->DrawBitmap(orb_c, SRect(x * 80, y * 80, (x * 80) + 80, (y * 80) + 80), 1.0, D2D1_BITMAP_INTERPOLATION_MODE_LINEAR);
+                }
+                else if (predmety[y][x] == typ_predmetu::orb_zl) {
+                    m_pRenderTarget->DrawBitmap(orb_zl, SRect(x * 80, y * 80, (x * 80) + 80, (y * 80) + 80), 1.0, D2D1_BITMAP_INTERPOLATION_MODE_LINEAR);
+                }
+                else if (predmety[y][x] == typ_predmetu::orb_z) {
+                    m_pRenderTarget->DrawBitmap(orb_z, SRect(x * 80, y * 80, (x * 80) + 80, (y * 80) + 80), 1.0, D2D1_BITMAP_INTERPOLATION_MODE_LINEAR);
+                }
+                else if (predmety[y][x] == typ_predmetu::orb_o) {
+                    m_pRenderTarget->DrawBitmap(orb_o, SRect(x * 80, y * 80, (x * 80) + 80, (y * 80) + 80), 1.0, D2D1_BITMAP_INTERPOLATION_MODE_LINEAR);
                 }
                 else {
 
@@ -1433,22 +1746,22 @@ HWND CreateChoose(HWND hwndParent) {
     int xpos = 46;         
     int ypos = 28;          
     int nwidth = 120;      
-    int nheight = 200;
+    int nheight = 300;
 
     HWND hWndComboBox = CreateWindow(WC_COMBOBOX, TEXT(""),
         CBS_DROPDOWN | CBS_HASSTRINGS | WS_CHILD | WS_OVERLAPPED | WS_VISIBLE,
         xpos, ypos, nwidth, nheight, hwndParent, NULL, HINST_THISCOMPONENT,
         NULL);
-    TCHAR Planets[9][18] =
+    TCHAR Planets[16][20] =
     {
-        TEXT("trava"), TEXT("kamen-podlaha"), TEXT("kamen-zed"), TEXT("nic-podlaha"), TEXT("nic-predmet"), TEXT("krystal cerveny"), TEXT("krystal modry"), TEXT("krystal oranzovy"), TEXT("krystal zeleny")
+        TEXT("trava"), TEXT("kamen-podlaha"), TEXT("kamen-zed"), TEXT("nic-podlaha"), TEXT("nic-predmet"), TEXT("krystal cerveny"), TEXT("krystal modry"), TEXT("krystal oranzovy"), TEXT("krystal zeleny"), TEXT("krystal zluty"), TEXT("kamen ornament"), TEXT("orb cerveny"), TEXT("orb modry"), TEXT("orb zeleny"), TEXT("orb oranzovy"), TEXT("orb zluty")
     };
 
     TCHAR A[18];
     int  k = 0;
 
     memset(&A, 0, sizeof(A));
-    for (k = 0; k <= 8; k += 1)
+    for (k = 0; k <= 9; k += 1)
     {
         wcscpy_s(A, sizeof(A) / sizeof(TCHAR), (TCHAR*)Planets[k]);
 
@@ -1490,7 +1803,7 @@ INT_PTR CALLBACK EditChoose(HWND hDlg, UINT message, WPARAM wParam, LPARAM lPara
                 for (int _y = 0; _y < 10; _y++) {
                     for (int _x = 0; _x < 17; _x++) {
                         predmety[_y][_x] = typ_predmetu::nic_;
-                        zed[_y][_x] = false;
+                        zed[_y][_x] = typ_zdi::nic__;
                         podlaha[_y][_x] = typ_podlahy::nic;
                     }
                 }
@@ -1540,6 +1853,27 @@ INT_PTR CALLBACK EditChoose(HWND hDlg, UINT message, WPARAM wParam, LPARAM lPara
             }
             else if (ItemIndex == 8) {
                 mode = 8;
+            }
+            else if (ItemIndex == 9) {
+                mode = 10;
+            }
+            else if (ItemIndex == 10) {
+                mode = 11;
+            }
+            else if (ItemIndex == 11) {
+                mode = 13;
+            }
+            else if (ItemIndex == 12) {
+                mode = 12;
+            }
+            else if (ItemIndex == 13) {
+                mode = 15;
+            }
+            else if (ItemIndex == 14) {
+                mode = 14;
+            }
+            else if (ItemIndex == 15) {
+                mode = 16;
             }
         }
         break;
