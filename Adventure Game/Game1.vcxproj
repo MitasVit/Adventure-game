@@ -154,6 +154,7 @@
     <Image Include="img\icon\Game1.ico" />
     <Image Include="img\icon\small.ico" />
     <Image Include="img\kamen.png" />
+    <Image Include="img\kamen2.png" />
     <Image Include="img\krystal_c.png" />
     <Image Include="img\krystal_m.png" />
     <Image Include="img\krystal_o.png" />

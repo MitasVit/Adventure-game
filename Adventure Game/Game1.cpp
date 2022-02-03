@@ -2,6 +2,7 @@
 //
 #pragma warning(disable : 4996)// acess deprecated
 #pragma warning(disable : 4244) // float to long/int
+#pragma warning(disable : 28251) // nekonzistentni poznamka u WinMain
 #include <windows.h>
 
 #include <stdlib.h>
@@ -21,6 +22,10 @@
 #include <string>
 #include <fstream>
 
+#include <shellapi.h>
+#include <atlstr.h>
+
+#pragma comment(lib, "Shell32.lib")
 #pragma comment(lib, "d2d1.lib")
 
 #include "Resource.h"
@@ -58,23 +63,21 @@ EXTERN_C IMAGE_DOS_HEADER __ImageBase;
 #endif
 
 
-int sebr_mk = 0/*pocet sebrani modry krystal*/, sebr_ck = 0/*pocet sebrani cerveny krystal*/;
-int sebr_ok = 0, sebr_zk = 0;
+//#define POSOUVANI_KAMERY
+
+//sebr_"prvni pismeno barvy""[k]krystal [o]orb"
+int sebr_mk = 0, sebr_ck = 0, sebr_ok = 0, sebr_zk = 0, sebr_zlk = 0;
+int sebr_mo = 0, sebr_co = 0, sebr_oo = 0, sebr_zo = 0, sebr_zlo = 0;
 
 HWND shared;
 int x=2, y=2;
 int mom_postava = 1;
-//y,x
-bool zed[10][17] = { {true, true, true, true, false, false, false,false, false,false,false,false,false,false,false,false,false},
-                {false, false, false, true,false, false, false,false, false,false,false,false,false,false,false,false,false},
-                {false, false, false, true,false, false, false,false, false,false,false,false,false,false,false,false,false},
-                {false, false, false, false,false, false, false,false, false,false,false,false,false,false,false,false,false},
-                {false, false, false, false,false, false, false,false, false,false,false,false,false,false,false,false,false},
-                {false, false, false, true,false, false, false,false, false,false,false,false,false,false,false,false,false},
-                {false, false, false, true,false, false, false,false, false,false,false,false,false,false,false,false,false},
-                {false, false, false, true,false, false, false,false, false,false,false,false,false,false,false,false,false},
-                {false, false, false, false,false, false, false,false, false,false,false,false,false,false,false,false,false},
-                {false, false, false, false,false, false, false,false, false,false,false,false,false,false,false,false,false}, };
+
+enum typ_zdi {
+    kamen_=1,
+    kamen_o=2,
+    nic__ = 3
+};
 enum typ_podlahy {
     trava = 1,
     kamen = 2,
@@ -85,8 +88,27 @@ enum typ_predmetu {
     krystal_c = 2,/*cerveny*/
     krystal_z = 4,/*zeleny*/
     krystal_o = 5, /*oranzovy*/
+    krystal_zl = 6,
+    //orby
+    orb_m = 7,/*modry*/
+    orb_c = 8,/*cerveny*/
+    orb_z = 9,/*zeleny*/
+    orb_o = 10, /*oranzovy*/
+    orb_zl = 11,/*zluty*/
     nic_ = 3
 };
+
+//y,x
+typ_zdi zed[10][17] = { {nic__, nic__, nic__, nic__, nic__, nic__, nic__,nic__, nic__,nic__,nic__,nic__,nic__,nic__,nic__,nic__,nic__},
+               {nic__, nic__, nic__, nic__, nic__, nic__, nic__,nic__, nic__,nic__,nic__,nic__,nic__,nic__,nic__,nic__,nic__},
+               {nic__, nic__, nic__, nic__, nic__, nic__, nic__,nic__, nic__,nic__,nic__,nic__,nic__,nic__,nic__,nic__,nic__},
+                {nic__, nic__, nic__, nic__, nic__, nic__, nic__,nic__, nic__,nic__,nic__,nic__,nic__,nic__,nic__,nic__,nic__},
+               {nic__, nic__, nic__, nic__, nic__, nic__, nic__,nic__, nic__,nic__,nic__,nic__,nic__,nic__,nic__,nic__,nic__},
+              {nic__, nic__, nic__, nic__, nic__, nic__, nic__,nic__, nic__,nic__,nic__,nic__,nic__,nic__,nic__,nic__,nic__},
+               {nic__, nic__, nic__, nic__, nic__, nic__, nic__,nic__, nic__,nic__,nic__,nic__,nic__,nic__,nic__,nic__,nic__},
+                {nic__, nic__, nic__, nic__, nic__, nic__, nic__,nic__, nic__,nic__,nic__,nic__,nic__,nic__,nic__,nic__,nic__}, 
+                {nic__, nic__, nic__, nic__, nic__, nic__, nic__,nic__, nic__,nic__,nic__,nic__,nic__,nic__,nic__,nic__,nic__}, };
+
 //y, x
 typ_podlahy podlaha[10][17] = { {nic,nic,nic,nic,trava,trava,kamen,kamen,kamen,kamen, kamen,kamen,kamen,kamen,kamen,kamen,kamen},
                 {trava, trava,trava,nic, trava, trava, kamen, kamen, kamen,trava, kamen,kamen,kamen,kamen,kamen,kamen,kamen},
@@ -199,8 +221,9 @@ private:
     ID2D1SolidColorBrush* m_pBrush1;
 
     ID2D1Bitmap* postava, *podlaha_kamen, *zed_nah/*nahore*/;
-    ID2D1Bitmap* pos1, * pos2, * pos3, * pos4, *kamen;//postavy
-    ID2D1Bitmap* trava, * krystal_m, * krystal_c, * krystal_z, * krystal_o;
+    ID2D1Bitmap* pos1, * pos2, * pos3, * pos4, *kamen, *kamen2;//postavy
+    ID2D1Bitmap* trava, * krystal_m, * krystal_c, * krystal_z, * krystal_o, *krystal_zl;
+    ID2D1Bitmap* orb_m, * orb_c, * orb_z, * orb_o, * orb_zl;//orby
 };
 
 DemoApp::DemoApp() :
@@ -223,7 +246,14 @@ DemoApp::DemoApp() :
     krystal_m(NULL),
     krystal_c(NULL),
     krystal_o(NULL),
-    krystal_z(NULL)
+    krystal_z(NULL),
+    krystal_zl(NULL),
+    kamen2(NULL),
+    orb_m(NULL),
+    orb_c(NULL),
+    orb_o(NULL),
+    orb_z(NULL),
+    orb_zl(NULL)
 {
 }
 
@@ -249,6 +279,13 @@ DemoApp::~DemoApp()
     SafeRelease(&krystal_c);
     SafeRelease(&krystal_o);
     SafeRelease(&krystal_z);
+    SafeRelease(&krystal_zl);
+    SafeRelease(&kamen2);
+    SafeRelease(&orb_m);
+    SafeRelease(&orb_c);
+    SafeRelease(&orb_z);
+    SafeRelease(&orb_o);
+    SafeRelease(&orb_zl);
 }
 
 
@@ -573,7 +610,7 @@ HRESULT DemoApp::Initialize()
         // Create the window.
         m_hwnd = CreateWindow(
             L"D2DDemoApp",
-            L"Direct2D Demo App",
+            L"Adventure Game",
             WS_OVERLAPPEDWINDOW,
             CW_USEDEFAULT,
             CW_USEDEFAULT,
@@ -839,6 +876,90 @@ HRESULT DemoApp::CreateDeviceResources()
                     &krystal_z
                 );
             }
+            if (SUCCEEDED(hr))
+            {
+                hr = LoadResourceBitmap(
+                    m_pRenderTarget,
+                    m_pWICFactory,
+                    L"zlkrystal",
+                    L"Image",
+                    500,
+                    500,
+                    &krystal_zl
+                );
+            }
+            if (SUCCEEDED(hr))
+            {
+                hr = LoadResourceBitmap(
+                    m_pRenderTarget,
+                    m_pWICFactory,
+                    L"zed2",
+                    L"Image",
+                    500,
+                    500,
+                    &kamen2
+                );
+            }
+            if (SUCCEEDED(hr))
+            {
+                hr = LoadResourceBitmap(
+                    m_pRenderTarget,
+                    m_pWICFactory,
+                    L"morb",
+                    L"Image",
+                    500,
+                    500,
+                    &orb_m
+                );
+            }
+            if (SUCCEEDED(hr))
+            {
+                hr = LoadResourceBitmap(
+                    m_pRenderTarget,
+                    m_pWICFactory,
+                    L"corb",
+                    L"Image",
+                    500,
+                    500,
+                    &orb_c
+                );
+            }
+            if (SUCCEEDED(hr))
+            {
+                hr = LoadResourceBitmap(
+                    m_pRenderTarget,
+                    m_pWICFactory,
+                    L"oorb",
+                    L"Image",
+                    500,
+                    500,
+                    &orb_o
+                );
+            }
+            if (SUCCEEDED(hr))
+            {
+                hr = LoadResourceBitmap(
+                    m_pRenderTarget,
+                    m_pWICFactory,
+                    L"zorb",
+                    L"Image",
+                    500,
+                    500,
+                    &orb_z
+                );
+            }
+            if (SUCCEEDED(hr))
+            {
+                hr = LoadResourceBitmap(
+                    m_pRenderTarget,
+                    m_pWICFactory,
+                    L"zlorb",
+                    L"Image",
+                    500,
+                    500,
+                    &orb_zl
+                );
+            }
 
     }
 
@@ -869,10 +990,33 @@ LRESULT CALLBACK DemoApp::WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM
 
         result = 1;
 
+        //load if command line argument: Game1 path *map*
+        //*map* replace with map full path
+        string open_file_name="lets_go.txt";
+        LPWSTR* szArglist;
+        int nArgs;
+
+        szArglist = CommandLineToArgvW(GetCommandLineW(), &nArgs);
+        if (NULL == szArglist)
+        {
+            MessageBox(NULL, L"CommandLineToArgvW failed\n", L"info", MB_OK);
+        }
+        else {
+            if (szArglist[1] != L"path") {
+                open_file_name = "lets_go.txt";
+            }
+            else {
+                wstring ws(szArglist[2]);
+                string tmp_name = string(ws.begin(), ws.end());
+                open_file_name = tmp_name;
+            }
+        }
+        LocalFree(szArglist);
+
         //nacteni mapy
         int startposx, startposy, width, height;
-        if (exist_read_file("lets_go.txt")) {
-            ifstream in("lets_go.txt");
+        if (exist_read_file(open_file_name.c_str())) {
+            ifstream in(open_file_name.c_str());
             in >> width;
             in >> height;
             in >> startposx;
@@ -882,10 +1026,12 @@ LRESULT CALLBACK DemoApp::WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM
                     int _t;
                     in >> _t;
                     if (_t == 1) {
-                        zed[_y][_x] = true;
+                        zed[_y][_x] = typ_zdi::kamen_;
+                    }else if (_t == 2) {
+                        zed[_y][_x] = typ_zdi::kamen_o;
                     }
                     else {
-                        zed[_y][_x] = false;
+                        zed[_y][_x] = typ_zdi::nic__;
                     }
                 }
             }
@@ -926,6 +1072,24 @@ LRESULT CALLBACK DemoApp::WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM
                     else if (t == 5) {
                         predmety[_y][_x] = typ_predmetu::krystal_o;
                     }
+                    else if (t == 6) {
+                        predmety[_y][_x] = typ_predmetu::krystal_zl;
+                    }
+                    else if (t == 7) {
+                        predmety[_y][_x] = typ_predmetu::orb_m;
+                    }
+                    else if (t == 8) {
+                        predmety[_y][_x] = typ_predmetu::orb_c;
+                    }
+                    else if (t == 9) {
+                        predmety[_y][_x] = typ_predmetu::orb_z;
+                    }
+                    else if (t == 10) {
+                        predmety[_y][_x] = typ_predmetu::orb_o;
+                    }
+                    else if (t == 11) {
+                        predmety[_y][_x] = typ_predmetu::orb_zl;
+                    }
                     else {
                         predmety[_y][_x] = typ_predmetu::nic_;
                     }
@@ -934,7 +1098,7 @@ LRESULT CALLBACK DemoApp::WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM
             in.close();
         }
         else {
-            MessageBox(NULL, L"lets_go.txt neexistuje - je to defaultni mapa, zkontrolujte popripade otverte s o", L"info", MB_OK | MB_ICONERROR);
+            MessageBox(NULL, L"Defaultni mapa nebo soubor otevreny pres prikaz -path neexistuje.", L"info", MB_OK | MB_ICONERROR);
         }
         SendMessage(hwnd, WM_PAINT, 0, 0);
     }
@@ -974,7 +1138,7 @@ LRESULT CALLBACK DemoApp::WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM
                 }
                 else if ((GetAsyncKeyState(0x27) & 0x8000) || (GetAsyncKeyState(0x44) & 0x8000)) {
                     //key-right pressed | key d 
-                    if (!zed[y][x+1]) {
+                    if ((zed[y][x+1] != typ_zdi::kamen_) && (zed[y][x + 1] != typ_zdi::kamen_o)) {
                         x++;
                         mom_postava = 3;
                     }
@@ -994,11 +1158,36 @@ LRESULT CALLBACK DemoApp::WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM
                         sebr_zk++;
                         predmety[y][x] = typ_predmetu::nic_;
                     }
+                    else if (predmety[y][x] == typ_predmetu::krystal_zl) {
+                        sebr_zlk++;
+                        predmety[y][x] = typ_predmetu::nic_;
+                    }
+                    else if (predmety[y][x] == typ_predmetu::orb_m) {
+                        sebr_mo++;
+                        predmety[y][x] = typ_predmetu::nic_;
+                    }
+                    else if (predmety[y][x] == typ_predmetu::orb_c) {
+                        sebr_co++;
+                        predmety[y][x] = typ_predmetu::nic_;
+                    }
+                    else if (predmety[y][x] == typ_predmetu::orb_o) {
+                        sebr_oo++;
+                        predmety[y][x] = typ_predmetu::nic_;
+                    }
+                    else if (predmety[y][x] == typ_predmetu::orb_z) {
+                        sebr_zo++;
+                        predmety[y][x] = typ_predmetu::nic_;
+                    }
+                    else if (predmety[y][x] == typ_predmetu::orb_zl) {
+                        sebr_zlo++;
+                        predmety[y][x] = typ_predmetu::nic_;
+                    }
+                    
                     SendMessage(hwnd, WM_PAINT, 0, 0);
                 }
                 else if ((GetAsyncKeyState(0x25) & 0x8000) || (GetAsyncKeyState(0x41) & 0x8000)) {
                     //key-left pressed | key a
-                    if (!zed[y][x-1]) {
+                    if ((zed[y][x - 1] != typ_zdi::kamen_) && (zed[y][x - 1] != typ_zdi::kamen_o)) {
                         x--;
                         mom_postava = 4;
                     }
@@ -1018,11 +1207,35 @@ LRESULT CALLBACK DemoApp::WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM
                         sebr_zk++;
                         predmety[y][x] = typ_predmetu::nic_;
                     }
+                    else if (predmety[y][x] == typ_predmetu::krystal_zl) {
+                        sebr_zlk++;
+                        predmety[y][x] = typ_predmetu::nic_;
+                    }
+                    else if (predmety[y][x] == typ_predmetu::orb_m) {
+                        sebr_mo++;
+                        predmety[y][x] = typ_predmetu::nic_;
+                    }
+                    else if (predmety[y][x] == typ_predmetu::orb_c) {
+                        sebr_co++;
+                        predmety[y][x] = typ_predmetu::nic_;
+                    }
+                    else if (predmety[y][x] == typ_predmetu::orb_o) {
+                        sebr_oo++;
+                        predmety[y][x] = typ_predmetu::nic_;
+                    }
+                    else if (predmety[y][x] == typ_predmetu::orb_z) {
+                        sebr_zo++;
+                        predmety[y][x] = typ_predmetu::nic_;
+                    }
+                    else if (predmety[y][x] == typ_predmetu::orb_zl) {
+                        sebr_zlo++;
+                        predmety[y][x] = typ_predmetu::nic_;
+                    }
                     SendMessage(hwnd, WM_PAINT, 0, 0);
                 } 
                 else if ((GetAsyncKeyState(0x28) & 0x8000) || (GetAsyncKeyState(0x53) & 0x8000)){
                     //key-down pressed | key s 
-                    if (!zed[y+1][x]) {
+                    if ((zed[y+1][x] != typ_zdi::kamen_) && (zed[y+1][x] != typ_zdi::kamen_o)) {
                         y++;
                         mom_postava = 1;
                     }
@@ -1042,11 +1255,35 @@ LRESULT CALLBACK DemoApp::WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM
                         sebr_zk++;
                         predmety[y][x] = typ_predmetu::nic_;
                     }
+                    else if (predmety[y][x] == typ_predmetu::krystal_zl) {
+                        sebr_zlk++;
+                        predmety[y][x] = typ_predmetu::nic_;
+                    }
+                    else if (predmety[y][x] == typ_predmetu::orb_m) {
+                        sebr_mo++;
+                        predmety[y][x] = typ_predmetu::nic_;
+                    }
+                    else if (predmety[y][x] == typ_predmetu::orb_c) {
+                        sebr_co++;
+                        predmety[y][x] = typ_predmetu::nic_;
+                    }
+                    else if (predmety[y][x] == typ_predmetu::orb_o) {
+                        sebr_oo++;
+                        predmety[y][x] = typ_predmetu::nic_;
+                    }
+                    else if (predmety[y][x] == typ_predmetu::orb_z) {
+                        sebr_zo++;
+                        predmety[y][x] = typ_predmetu::nic_;
+                    }
+                    else if (predmety[y][x] == typ_predmetu::orb_zl) {
+                        sebr_zlo++;
+                        predmety[y][x] = typ_predmetu::nic_;
+                    }
                     SendMessage(hwnd, WM_PAINT, 0, 0);
                 }
                 else if ((GetAsyncKeyState(0x26) & 0x8000) || (GetAsyncKeyState(0x57) & 0x8000)) {
                      //key-up pressed | key w 
-                    if (!zed[y-1][x]) {
+                    if ((zed[y- 1][x] != typ_zdi::kamen_) && (zed[y - 1][x] != typ_zdi::kamen_o)) {
                         y--;
                         mom_postava = 2;
                     }
@@ -1066,12 +1303,40 @@ LRESULT CALLBACK DemoApp::WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM
                         sebr_zk++;
                         predmety[y][x] = typ_predmetu::nic_;
                     }
+                    else if (predmety[y][x] == typ_predmetu::krystal_zl) {
+                        sebr_zlk++;
+                        predmety[y][x] = typ_predmetu::nic_;
+                    }
+                    else if (predmety[y][x] == typ_predmetu::orb_m) {
+                        sebr_mo++;
+                        predmety[y][x] = typ_predmetu::nic_;
+                    }
+                    else if (predmety[y][x] == typ_predmetu::orb_c) {
+                        sebr_co++;
+                        predmety[y][x] = typ_predmetu::nic_;
+                    }
+                    else if (predmety[y][x] == typ_predmetu::orb_o) {
+                        sebr_oo++;
+                        predmety[y][x] = typ_predmetu::nic_;
+                    }
+                    else if (predmety[y][x] == typ_predmetu::orb_z) {
+                        sebr_zo++;
+                        predmety[y][x] = typ_predmetu::nic_;
+                    }
+                    else if (predmety[y][x] == typ_predmetu::orb_zl) {
+                        sebr_zlo++;
+                        predmety[y][x] = typ_predmetu::nic_;
+                    }
                      SendMessage(hwnd, WM_PAINT, 0, 0);
                 }
                 else if (GetAsyncKeyState(VK_F2) & 0x8000) {
                     //key f2
-                    string str = "Pocet sebranych krystalu - modre: " + to_string(sebr_mk) + ", cervene: " + to_string(sebr_ck) + ", zelene: " + to_string(sebr_zk) + ", oranzove: " + to_string(sebr_ok);
+                    string str = "Pocet sebranych krystalu - modre: " + to_string(sebr_mk) + ", cervene: " + to_string(sebr_ck) + ", zelene: " + to_string(sebr_zk) + ", oranzove: " + to_string(sebr_ok) + ", zlute: " + to_string(sebr_zlk) + "\n" + "Pocet sebranych orbu - modre: " + to_string(sebr_mo) + ", cervene: " + to_string(sebr_co) + ", zelene: " + to_string(sebr_zo) + ", oranzove: " + to_string(sebr_oo) + ", zlute: " + to_string(sebr_zlo);
                     MessageBoxA(NULL, str.c_str(), "Info", MB_OK | MB_ICONINFORMATION);
+                }
+                else if (GetAsyncKeyState(VK_F3) & 0x8000) {
+                    //key f2
+                    MessageBox(NULL, L"Leze, leze po železe, až dá pokoj tak tam vleze. Co je to?", L"Hálo tady implusovy", MB_OK);
                 }
                 else if (GetAsyncKeyState(0x4F) & 0x8000) {
                     //o pressed - open mapa
@@ -1106,10 +1371,13 @@ LRESULT CALLBACK DemoApp::WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM
                                     int _t;
                                     in >> _t;
                                     if (_t == 1) {
-                                        zed[_y][_x] = true;
+                                        zed[_y][_x] = typ_zdi::kamen_;
+                                    }
+                                    else if (_t == 2) {
+                                        zed[_y][_x] = typ_zdi::kamen_o;
                                     }
                                     else {
-                                        zed[_y][_x] = false;
+                                        zed[_y][_x] = typ_zdi::nic__;
                                     }
                                 }
                             }
@@ -1149,6 +1417,24 @@ LRESULT CALLBACK DemoApp::WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM
                                     }
                                     else if (t == 5) {
                                         predmety[_y][_x] = typ_predmetu::krystal_o;
+                                    }
+                                    else if (t == 6) {
+                                        predmety[_y][_x] = typ_predmetu::krystal_zl;
+                                    }
+                                    else if (t == 7) {
+                                        predmety[_y][_x] = typ_predmetu::orb_m;
+                                    }
+                                    else if (t == 8) {
+                                        predmety[_y][_x] = typ_predmetu::orb_c;
+                                    }
+                                    else if (t == 9) {
+                                        predmety[_y][_x] = typ_predmetu::orb_z;
+                                    }
+                                    else if (t == 10) {
+                                        predmety[_y][_x] = typ_predmetu::orb_o;
+                                    }
+                                    else if (t == 11) {
+                                        predmety[_y][_x] = typ_predmetu::orb_zl;
                                     }
                                     else {
                                         predmety[_y][_x] = typ_predmetu::nic_;
@@ -1224,170 +1510,101 @@ HRESULT DemoApp::OnRender()
         int zobraz_sirka = round(width / 80)+1;
         int zobraz_vyska = round(height / 80)+1;
         */
+
+#ifdef POSOUVANI_KAMERY
         int hrac_x = round(((width - 80) / 2) / 80) * 80;
         int hrac_y = round(((height - 80) / 2) / 80) * 80;
 
         int hrac_x2 = (hrac_x / 80) - x;
         int hrac_y2 = (hrac_y / 80) - y;
 
-        /*for (int _x = 0; _x < 17; _x++) {
+        for (int _x = 0; _x < 17; _x++) {
             for (int _y = 0; _y < 10; _y++) {
-                if (zed[_y+hrac_y2][_x+hrac_x2] == true) {
+                if (zed[_y + y-4][_x + x-7] == true) {
                     m_pRenderTarget->DrawBitmap(kamen, SRect(_x * 80, _y * 80, (_x * 80) + 80, (_y * 80) + 80), 1.0, D2D1_BITMAP_INTERPOLATION_MODE_LINEAR);
                 }
-                else if (podlaha[_y + hrac_y2][_x + hrac_x2] == typ_podlahy::trava) {
+                else if (podlaha[_y + y-4][_x + x-7] == typ_podlahy::trava) {
                     m_pRenderTarget->DrawBitmap(trava, SRect(_x * 80, _y * 80, (_x * 80) + 80, (_y * 80) + 80), 1.0, D2D1_BITMAP_INTERPOLATION_MODE_LINEAR);
                 }
-                else if (podlaha[_y + hrac_y2][_x + hrac_x2] == typ_podlahy::kamen) {
+                else if (podlaha[_y + y-4][_x + x-7] == typ_podlahy::kamen) {
                     m_pRenderTarget->DrawBitmap(podlaha_kamen, SRect(_x * 80, _y * 80, (_x * 80) + 80, (_y * 80) + 80), 1.0, D2D1_BITMAP_INTERPOLATION_MODE_LINEAR);
                 }
 
-                if (predmety[_y + hrac_y2][_x + hrac_x2] == typ_predmetu::krystal_m) {
+                if (predmety[_y + y-4][_x + x-7] == typ_predmetu::krystal_m) {
                     m_pRenderTarget->DrawBitmap(krystal_m, SRect(_x * 80, _y * 80, (_x * 80) + 80, (_y * 80) + 80), 1.0, D2D1_BITMAP_INTERPOLATION_MODE_LINEAR);
                 }
-                else if (predmety[_y + hrac_y2][_x + hrac_x2] == typ_predmetu::krystal_c) {
+                else if (predmety[_y + y-4][_x + x-7] == typ_predmetu::krystal_c) {
                     m_pRenderTarget->DrawBitmap(krystal_c, SRect(_x * 80, _y * 80, (_x * 80) + 80, (_y * 80) + 80), 1.0, D2D1_BITMAP_INTERPOLATION_MODE_LINEAR);
                 }
-                else if (predmety[_y + hrac_y2][_x + hrac_x2] == typ_predmetu::krystal_z) {
+                else if (predmety[_y + y-4][_x + x-7] == typ_predmetu::krystal_z) {
                     m_pRenderTarget->DrawBitmap(krystal_z, SRect(_x * 80, _y * 80, (_x * 80) + 80, (_y * 80) + 80), 1.0, D2D1_BITMAP_INTERPOLATION_MODE_LINEAR);
                 }
-                else if (predmety[_y + hrac_y2][_x + hrac_x2] == typ_predmetu::krystal_o) {
+                else if (predmety[_y - y][_x + x-7] == typ_predmetu::krystal_o) {
                     m_pRenderTarget->DrawBitmap(krystal_o, SRect(_x * 80, _y * 80, (_x * 80) + 80, (_y * 80) + 80), 1.0, D2D1_BITMAP_INTERPOLATION_MODE_LINEAR);
                 }
-                else {
-
-                }
-            }
-        }
-
-        if (((hrac_x / 80) - x) == 0 && ((hrac_y / 80) - y) == 0) {
-            for (int _x = 0; _x < 17; _x++) {
-                for (int _y = 0; _y < 10; _y++) {
-                    if (zed[_y][_x] == true) {
-                        m_pRenderTarget->DrawBitmap(kamen, SRect(_x * 80, _y * 80, (_x * 80) + 80, (_y * 80) + 80), 1.0, D2D1_BITMAP_INTERPOLATION_MODE_LINEAR);
-                    }
-                    else if (podlaha[_y][_x] == typ_podlahy::trava) {
-                        m_pRenderTarget->DrawBitmap(trava, SRect(_x * 80, _y * 80, (_x * 80) + 80, (_y * 80) + 80), 1.0, D2D1_BITMAP_INTERPOLATION_MODE_LINEAR);
-                    }
-                    else if (podlaha[_y][_x] == typ_podlahy::kamen) {
-                        m_pRenderTarget->DrawBitmap(podlaha_kamen, SRect(_x * 80, _y * 80, (_x * 80) + 80, (_y * 80) + 80), 1.0, D2D1_BITMAP_INTERPOLATION_MODE_LINEAR);
-                    }
-
-                    if (predmety[_y][_x] == typ_predmetu::krystal_m) {
-                        m_pRenderTarget->DrawBitmap(krystal_m, SRect(_x * 80, _y * 80, (_x * 80) + 80, (_y * 80) + 80), 1.0, D2D1_BITMAP_INTERPOLATION_MODE_LINEAR);
-                    }
-                    else if (predmety[_y][_x] == typ_predmetu::krystal_c) {
-                        m_pRenderTarget->DrawBitmap(krystal_c, SRect(_x * 80, _y * 80, (_x * 80) + 80, (_y * 80) + 80), 1.0, D2D1_BITMAP_INTERPOLATION_MODE_LINEAR);
-                    }
-                    else if (predmety[_y][_x] == typ_predmetu::krystal_z) {
-                        m_pRenderTarget->DrawBitmap(krystal_z, SRect(_x * 80, _y * 80, (_x * 80) + 80, (_y * 80) + 80), 1.0, D2D1_BITMAP_INTERPOLATION_MODE_LINEAR);
-                    }
-                    else if (predmety[_y][_x] == typ_predmetu::krystal_o) {
-                        m_pRenderTarget->DrawBitmap(krystal_o, SRect(_x * 80, _y * 80, (_x * 80) + 80, (_y * 80) + 80), 1.0, D2D1_BITMAP_INTERPOLATION_MODE_LINEAR);
-                    }
-                    else {
-
-                    }
-                }
-            }
-        }
-        else if (((hrac_x / 80) - x) > 0 && ((hrac_y / 80) - y) > 0) {
-            for (int _x = 0; _x < 17; _x++) {
-                for (int _y = 0; _y < 10; _y++) {
-                    if (zed[_y+((hrac_y/80)-y)][_x+((hrac_x/80)-x)] == true) {
-                        m_pRenderTarget->DrawBitmap(kamen, SRect(_x * 80, _y * 80, (_x * 80) + 80, (_y * 80) + 80), 1.0, D2D1_BITMAP_INTERPOLATION_MODE_LINEAR);
-                    }
-                    else if (podlaha[_y+ ((hrac_y / 80) - y)][_x+ ((hrac_x / 80) - x)] == typ_podlahy::trava) {
-                        m_pRenderTarget->DrawBitmap(trava, SRect(_x * 80, _y * 80, (_x * 80) + 80, (_y * 80) + 80), 1.0, D2D1_BITMAP_INTERPOLATION_MODE_LINEAR);
-                    }
-                    else if (podlaha[_y+ ((hrac_y / 80) - y)][ _x+((hrac_x / 80) - x)] == typ_podlahy::kamen) {
-                        m_pRenderTarget->DrawBitmap(podlaha_kamen, SRect(_x * 80, _y * 80, (_x * 80) + 80, (_y * 80) + 80), 1.0, D2D1_BITMAP_INTERPOLATION_MODE_LINEAR);
-                    }
-
-                    if (predmety[_y + ((hrac_y / 80) - y)][_x + ((hrac_x / 80) - x)] == typ_predmetu::krystal_m) {
-                        m_pRenderTarget->DrawBitmap(krystal_m, SRect(_x * 80, _y * 80, (_x * 80) + 80, (_y * 80) + 80), 1.0, D2D1_BITMAP_INTERPOLATION_MODE_LINEAR);
-                    }
-                    else if (predmety[_y + ((hrac_y / 80) - y)][_x + ((hrac_x / 80) - x)] == typ_predmetu::krystal_c) {
-                        m_pRenderTarget->DrawBitmap(krystal_c, SRect(_x * 80, _y * 80, (_x * 80) + 80, (_y * 80) + 80), 1.0, D2D1_BITMAP_INTERPOLATION_MODE_LINEAR);
-                    }
-                    else if (predmety[_y + ((hrac_y / 80) - y)][_x + ((hrac_x / 80) - x)] == typ_predmetu::krystal_z) {
-                        m_pRenderTarget->DrawBitmap(krystal_z, SRect(_x * 80, _y * 80, (_x * 80) + 80, (_y * 80) + 80), 1.0, D2D1_BITMAP_INTERPOLATION_MODE_LINEAR);
-                    }
-                    else if (predmety[_y + ((hrac_y / 80) - y)][_x + ((hrac_x / 80) - x)] == typ_predmetu::krystal_o) {
-                        m_pRenderTarget->DrawBitmap(krystal_o, SRect(_x * 80, _y * 80, (_x * 80) + 80, (_y * 80) + 80), 1.0, D2D1_BITMAP_INTERPOLATION_MODE_LINEAR);
-                    }
-                    else {
-
-                    }
-                }
-            }
-        }
-        else if (((hrac_x / 80) - x) < 0 && ((hrac_y / 80) - y) < 0) {
-            for (int _x = ((hrac_x/80)-x); _x < 17; _x++) {
-                for (int _y = ((hrac_y/80)-y); _y < 10; _y++) {
-                    if (zed[_y+ ((hrac_y / 80) - y)][_x+ ((hrac_x / 80) - x)] == true) {
-                        m_pRenderTarget->DrawBitmap(kamen, SRect(_x * 80, _y * 80, (_x * 80) + 80, (_y * 80) + 80), 1.0, D2D1_BITMAP_INTERPOLATION_MODE_LINEAR);
-                    }
-                    else if (podlaha[_y - ((hrac_y / 80) - y)][_x - ((hrac_x / 80) - x)] == typ_podlahy::trava) {
-                        m_pRenderTarget->DrawBitmap(trava, SRect(_x * 80, _y * 80, (_x * 80) + 80, (_y * 80) + 80), 1.0, D2D1_BITMAP_INTERPOLATION_MODE_LINEAR);
-                    }
-                    else if (podlaha[_y - ((hrac_y / 80) - y)][_x - ((hrac_x / 80) - x)] == typ_podlahy::kamen) {
-                        m_pRenderTarget->DrawBitmap(podlaha_kamen, SRect(_x * 80, _y * 80, (_x * 80) + 80, (_y * 80) + 80), 1.0, D2D1_BITMAP_INTERPOLATION_MODE_LINEAR);
-                    }
-
-                    if (predmety[_y - ((hrac_y / 80) - y)][_x - ((hrac_x / 80) - x)] == typ_predmetu::krystal_m) {
-                        m_pRenderTarget->DrawBitmap(krystal_m, SRect(_x * 80, _y * 80, (_x * 80) + 80, (_y * 80) + 80), 1.0, D2D1_BITMAP_INTERPOLATION_MODE_LINEAR);
-                    }
-                    else if (predmety[_y - ((hrac_y / 80) - y)][_x - ((hrac_x / 80) - x)] == typ_predmetu::krystal_c) {
-                        m_pRenderTarget->DrawBitmap(krystal_c, SRect(_x * 80, _y * 80, (_x * 80) + 80, (_y * 80) + 80), 1.0, D2D1_BITMAP_INTERPOLATION_MODE_LINEAR);
-                    }
-                    else if (predmety[_y - ((hrac_y / 80) - y)][_x - ((hrac_x / 80) - x)] == typ_predmetu::krystal_z) {
-                        m_pRenderTarget->DrawBitmap(krystal_z, SRect(_x * 80, _y * 80, (_x * 80) + 80, (_y * 80) + 80), 1.0, D2D1_BITMAP_INTERPOLATION_MODE_LINEAR);
-                    }
-                    else if (predmety[_y - ((hrac_y / 80) - y)][_x - ((hrac_x / 80) - x)] == typ_predmetu::krystal_o) {
-                        m_pRenderTarget->DrawBitmap(krystal_o, SRect(_x * 80, _y * 80, (_x * 80) + 80, (_y * 80) + 80), 1.0, D2D1_BITMAP_INTERPOLATION_MODE_LINEAR);
-                    }
-                    else {
-
-                    }
-                }
-            }
-        }
-        
-         D2D1_RECT_F postava_pos = SRect(hrac_x, hrac_y, hrac_x+80, hrac_y+80);
-        */
-
-        //old
-        for (int x = 0; x < 17; x++) {
-            for (int y = 0; y < 10; y++) {
-                if (zed[y][x] == true) {
-                    m_pRenderTarget->DrawBitmap(kamen, SRect(x * 80, y * 80, (x * 80) + 80, (y * 80) + 80), 1.0, D2D1_BITMAP_INTERPOLATION_MODE_LINEAR);
-                }
-                else if (podlaha[y][x] == typ_podlahy::trava) {
-                    m_pRenderTarget->DrawBitmap(trava, SRect(x * 80, y * 80, (x * 80) + 80, (y * 80) + 80), 1.0, D2D1_BITMAP_INTERPOLATION_MODE_LINEAR);
-                }
-                else if (podlaha[y][x] == typ_podlahy::kamen) {
-                    m_pRenderTarget->DrawBitmap(podlaha_kamen, SRect(x  * 80, y * 80, (x * 80) + 80, (y * 80) + 80), 1.0, D2D1_BITMAP_INTERPOLATION_MODE_LINEAR);
-                }
-
-                if (predmety[y][x] == typ_predmetu::krystal_m) {
-                    m_pRenderTarget->DrawBitmap(krystal_m, SRect(x * 80, y * 80, (x * 80) + 80, (y * 80) + 80), 1.0, D2D1_BITMAP_INTERPOLATION_MODE_LINEAR);
-                }
-                else if (predmety[y][x] == typ_predmetu::krystal_c) {
-                    m_pRenderTarget->DrawBitmap(krystal_c, SRect(x * 80, y * 80, (x * 80) + 80, (y * 80) + 80), 1.0, D2D1_BITMAP_INTERPOLATION_MODE_LINEAR);
-                }
-                else if (predmety[y][x] == typ_predmetu::krystal_z) {
-                    m_pRenderTarget->DrawBitmap(krystal_z, SRect(x * 80, y * 80, (x * 80) + 80, (y * 80) + 80), 1.0, D2D1_BITMAP_INTERPOLATION_MODE_LINEAR);
-                }
-                else if (predmety[y][x] == typ_predmetu::krystal_o) {
-                    m_pRenderTarget->DrawBitmap(krystal_o, SRect(x * 80, y * 80, (x * 80) + 80, (y * 80) + 80), 1.0, D2D1_BITMAP_INTERPOLATION_MODE_LINEAR);
+                else if (predmety[_y - y][_x + x - 7] == typ_predmetu::krystal_zl) {
+                    m_pRenderTarget->DrawBitmap(krystal_zl, SRect(_x * 80, _y * 80, (_x * 80) + 80, (_y * 80) + 80), 1.0, D2D1_BITMAP_INTERPOLATION_MODE_LINEAR);
                 }
                 else {
 
                 }
             }
         }
+        D2D1_RECT_F postava_pos = SRect(hrac_x, hrac_y, hrac_x + 80, hrac_y + 80);
+#else
+        for (int _x = 0; _x < 17; _x++) {
+            for (int _y = 0; _y < 10; _y++) {
+
+                if (podlaha[_y][_x] == typ_podlahy::trava) {
+                    m_pRenderTarget->DrawBitmap(trava, SRect(_x * 80, _y * 80, (_x * 80) + 80, (_y * 80) + 80), 1.0, D2D1_BITMAP_INTERPOLATION_MODE_LINEAR);
+                }
+                else if (podlaha[_y][_x] == typ_podlahy::kamen) {
+                    m_pRenderTarget->DrawBitmap(podlaha_kamen, SRect(_x * 80, _y * 80, (_x * 80) + 80, (_y * 80) + 80), 1.0, D2D1_BITMAP_INTERPOLATION_MODE_LINEAR);
+                }
+
+                //musi byt zvlast jinak by tam bylo bilo - nema pozadi obrazek
+                if (zed[_y][_x] == typ_zdi::kamen_o) {
+                    m_pRenderTarget->DrawBitmap(kamen2, SRect(_x * 80, _y * 80, (_x * 80) + 80, (_y * 80) + 80), 1.0, D2D1_BITMAP_INTERPOLATION_MODE_LINEAR);
+                }
+                else if (zed[_y][_x] == typ_zdi::kamen_) {
+                    m_pRenderTarget->DrawBitmap(kamen, SRect(_x * 80, _y * 80, (_x * 80) + 80, (_y * 80) + 80), 1.0, D2D1_BITMAP_INTERPOLATION_MODE_LINEAR);
+                }
+
+                if (predmety[_y][_x] == typ_predmetu::krystal_m) {
+                    m_pRenderTarget->DrawBitmap(krystal_m, SRect(_x * 80, _y * 80, (_x * 80) + 80, (_y * 80) + 80), 1.0, D2D1_BITMAP_INTERPOLATION_MODE_LINEAR);
+                }
+                else if (predmety[_y][_x] == typ_predmetu::krystal_c) {
+                    m_pRenderTarget->DrawBitmap(krystal_c, SRect(_x * 80, _y * 80, (_x * 80) + 80, (_y * 80) + 80), 1.0, D2D1_BITMAP_INTERPOLATION_MODE_LINEAR);
+                }
+                else if (predmety[_y][_x] == typ_predmetu::krystal_z) {
+                    m_pRenderTarget->DrawBitmap(krystal_z, SRect(_x * 80, _y * 80, (_x * 80) + 80, (_y * 80) + 80), 1.0, D2D1_BITMAP_INTERPOLATION_MODE_LINEAR);
+                }
+                else if (predmety[_y][_x] == typ_predmetu::krystal_o) {
+                    m_pRenderTarget->DrawBitmap(krystal_o, SRect(_x * 80, _y * 80, (_x * 80) + 80, (_y * 80) + 80), 1.0, D2D1_BITMAP_INTERPOLATION_MODE_LINEAR);
+                }
+                else if (predmety[_y][_x] == typ_predmetu::orb_m) {
+                    m_pRenderTarget->DrawBitmap(orb_m, SRect(_x * 80, _y * 80, (_x * 80) + 80, (_y * 80) + 80), 1.0, D2D1_BITMAP_INTERPOLATION_MODE_LINEAR);
+                }
+                else if (predmety[_y][_x] == typ_predmetu::orb_c) {
+                    m_pRenderTarget->DrawBitmap(orb_c, SRect(_x * 80, _y * 80, (_x * 80) + 80, (_y * 80) + 80), 1.0, D2D1_BITMAP_INTERPOLATION_MODE_LINEAR);
+                }
+                else if (predmety[_y][_x] == typ_predmetu::orb_zl) {
+                    m_pRenderTarget->DrawBitmap(orb_zl, SRect(_x * 80, _y * 80, (_x * 80) + 80, (_y * 80) + 80), 1.0, D2D1_BITMAP_INTERPOLATION_MODE_LINEAR);
+                }
+                else if (predmety[_y][_x] == typ_predmetu::orb_z) {
+                    m_pRenderTarget->DrawBitmap(orb_z, SRect(_x * 80, _y * 80, (_x * 80) + 80, (_y * 80) + 80), 1.0, D2D1_BITMAP_INTERPOLATION_MODE_LINEAR);
+                }
+                else if (predmety[_y][_x] == typ_predmetu::orb_o) {
+                    m_pRenderTarget->DrawBitmap(orb_o, SRect(_x * 80, _y * 80, (_x * 80) + 80, (_y * 80) + 80), 1.0, D2D1_BITMAP_INTERPOLATION_MODE_LINEAR);
+                }
+                else {
+
+                }
+            }
+        }
+
         D2D1_RECT_F postava_pos = D2D1::RectF(x * 80, y * 80, (x * 80) + 80, (y * 80) + 80);
+#endif
 
         if (mom_postava == 1) {
             m_pRenderTarget->DrawBitmap(pos1, postava_pos, 1.0);
@@ -1403,7 +1620,6 @@ HRESULT DemoApp::OnRender()
         }
        /* m_pRenderTarget->DrawBitmap(postava, postava_pos, 1.0, D2D1_BITMAP_INTERPOLATION_MODE_LINEAR);
         */
-
 
         hr = m_pRenderTarget->EndDraw();
     }

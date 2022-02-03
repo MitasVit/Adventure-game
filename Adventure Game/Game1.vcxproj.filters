@@ -81,5 +81,8 @@
     <Image Include="img\krystal_z.png">
       <Filter>Soubory zdrojů\images and icons</Filter>
     </Image>
+    <Image Include="img\kamen2.png">
+      <Filter>Soubory zdrojů\images and icons</Filter>
+    </Image>
   </ItemGroup>
 </Project>
