@@ -3,7 +3,7 @@
 ## Community:
 
 Discord pozvánka:
-https://discord.gg/QByZQEZH
+https://discord.gg/C8CggJem
 
 ## Ovládání:
 #### OME - only map editor: jen pro map editor, OG - only game: jen pro hru
