@@ -24,6 +24,14 @@ https://discord.gg/QByZQEZH
  - "f1" - číslo modu OME
  - "f2" - nápoveda(malá) OME
  - "f2" - počet sebraných krystalů OG
+ - "f3" - dialog pro vybrání úpravy OME
+ - "0" - přidání modrého orbu
+ - "1" - přidání červeného orbu
+ - "2" - přidání zeleného orbu
+ - "3" - přidání oranžového orbu
+ - "4" - přidání žlutého orbu
+ - "5" - přidání peněz
+ - "6" - přidání posouvací bedny
 
 ## Funguje - log:
 
