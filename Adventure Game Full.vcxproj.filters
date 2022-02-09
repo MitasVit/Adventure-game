@@ -1,0 +1,99 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Hlavičkové soubory">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;h++;hm;inl;inc;ipp;xsd</Extensions>
+    </Filter>
+    <Filter Include="design">
+      <UniqueIdentifier>{3bf7eae2-719c-4270-b3a2-e8b2277ce5e4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="design\img">
+      <UniqueIdentifier>{c6066ad3-face-464b-8ca3-b5b603586897}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="main.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="resource.rc">
+      <Filter>design</Filter>
+    </ResourceCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="resource.h">
+      <Filter>design</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="img\kamen.png">
+      <Filter>design\img</Filter>
+    </Image>
+    <Image Include="img\kamen2.png">
+      <Filter>design\img</Filter>
+    </Image>
+    <Image Include="img\krystal_c.png">
+      <Filter>design\img</Filter>
+    </Image>
+    <Image Include="img\krystal_m.png">
+      <Filter>design\img</Filter>
+    </Image>
+    <Image Include="img\krystal_o.png">
+      <Filter>design\img</Filter>
+    </Image>
+    <Image Include="img\krystal_z.png">
+      <Filter>design\img</Filter>
+    </Image>
+    <Image Include="img\krystal_zl.png">
+      <Filter>design\img</Filter>
+    </Image>
+    <Image Include="img\orb_c.png">
+      <Filter>design\img</Filter>
+    </Image>
+    <Image Include="img\orb_m.png">
+      <Filter>design\img</Filter>
+    </Image>
+    <Image Include="img\orb_o.png">
+      <Filter>design\img</Filter>
+    </Image>
+    <Image Include="img\orb_z.png">
+      <Filter>design\img</Filter>
+    </Image>
+    <Image Include="img\orb_zl.png">
+      <Filter>design\img</Filter>
+    </Image>
+    <Image Include="img\podlaha_kamen.png">
+      <Filter>design\img</Filter>
+    </Image>
+    <Image Include="img\trava.png">
+      <Filter>design\img</Filter>
+    </Image>
+    <Image Include="img\zed.png">
+      <Filter>design\img</Filter>
+    </Image>
+    <Image Include="img\postava\1.png">
+      <Filter>design\img</Filter>
+    </Image>
+    <Image Include="img\postava\2.png">
+      <Filter>design\img</Filter>
+    </Image>
+    <Image Include="img\postava\3.png">
+      <Filter>design\img</Filter>
+    </Image>
+    <Image Include="img\postava\4.png">
+      <Filter>design\img</Filter>
+    </Image>
+    <Image Include="img\icon\icon.ico">
+      <Filter>design\img</Filter>
+    </Image>
+    <Image Include="img\icon\small.ico">
+      <Filter>design\img</Filter>
+    </Image>
+    <Image Include="img\peniz.png">
+      <Filter>design\img</Filter>
+    </Image>
+    <Image Include="img\bedna.png">
+      <Filter>design\img</Filter>
+    </Image>
+  </ItemGroup>
+</Project>
