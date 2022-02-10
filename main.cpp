@@ -1,4 +1,4 @@
-// Game1.cpp : Definuje vstupní bod pro aplikaci.
+// Game1.cpp : Definuje vstupnÃ­ bod pro aplikaci.
 //
 #pragma warning(disable : 4996)// acess deprecated
 #pragma warning(disable : 4244) // float to long/int
@@ -13,21 +13,21 @@
 #include <wchar.h>
 #include <math.h>
 
-#include <d2d1.h>
+#include <d2d1.h>//directx 2d
 #include <d2d1helper.h>
 
 #include <dwrite.h>
-#include <wincodec.h>
-#include <thread>
-#include  <io.h>
-#include  <stdio.h>
-#include <string>
-#include <fstream>
+#include <wincodec.h>//directx images
+#include <thread>//threads on cpu
+#include  <io.h>//input nad output
+#include  <stdio.h>// standard library
+#include <string>//string functions
+#include <fstream>// file streams
 
-#include <shellapi.h>
-#include <atlstr.h>
-#include <CommCtrl.h>
-#include <commdlg.h>
+#include <shellapi.h>// shell api functions
+#include <atlstr.h>//atl library functions
+#include <CommCtrl.h>//common controls
+#include <commdlg.h>//common dialogs
 
 #pragma comment(lib, "comctl32.lib")
 #pragma comment(lib, "User32.lib")
@@ -245,7 +245,7 @@ bool Res(int vyska, int sirka, int Map[10][17], int X, int Y, int chtitX, int ch
         return true;
     }
 
-    //rekurzivní systém pro kontrolu dalšího posunu
+    //rekurzivnÃ­ systÃ©m pro kontrolu dalÂšÃ­ho posunu
         if (X > 0 && Map[Y][X - 1] == 0 && Res(vyska, sirka, Map,X - 1, Y, chtitX, chtitY))
         {
             return true;
@@ -263,7 +263,7 @@ bool Res(int vyska, int sirka, int Map[10][17], int X, int Y, int chtitX, int ch
         return true;
     }
 
-    //back tracking - vracení zpìt
+    //back tracking - vracenÃ­ zpÃ¬t
     Map[Y][X] = 0;
 
     return false;
@@ -1868,7 +1868,7 @@ LRESULT CALLBACK DemoApp::WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM
                             fileNameStr = fileName;
                         if (fileNameStr != "") {
                             if(!JdeSebratVsechnyPredmety()){
-                                MessageBox(NULL, L"Všechny pøedmety z mapy nelze sebrat.", L"Varování", MB_OK | MB_ICONASTERISK);
+                                MessageBox(NULL, L"VÂšechny pÃ¸edmety z mapy nelze sebrat.", L"VarovÃ¡nÃ­", MB_OK | MB_ICONASTERISK);
                             }
                             ofstream out(fileNameStr.c_str());
                             //width, height, posx,posy, zdi, podlaha
