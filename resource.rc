@@ -44,6 +44,10 @@ ZLORB                IMAGE                   "img/orb_zl.png"
 PENIZ                IMAGE                   "img/peniz.png"
 BEDNA                IMAGE                   "img/bedna.png"
 
+STARTPOS             IMAGE                    "img/startpos.png"
+
+CIHLAZED             IMAGE                    "img/zed_cihla.png"
+
 
 /////////////////////////////////////////////////////////////////////////////
 //

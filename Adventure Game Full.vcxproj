@@ -49,6 +49,7 @@
     <Image Include="img\postava\2.png" />
     <Image Include="img\postava\3.png" />
     <Image Include="img\postava\4.png" />
+    <Image Include="img\startpos.png" />
     <Image Include="img\trava.png" />
     <Image Include="img\zed.png" />
   </ItemGroup>

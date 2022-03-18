@@ -15,9 +15,34 @@
 
 #define ID_PLAY           1006
 #define ID_MAPEDITOR      1005
+#define ID_PLAY2          1025
+
+#define ID_MENU2          1026
 
 #define ID_SETTRAVA       1007
 #define ID_SETKAMEN       1008
+
+#define ID_SETCKRYSTAL       1009
+#define ID_SETMKRYSTAL       1010
+#define ID_SETOKRYSTAL       1011
+#define ID_SETZKRYSTAL       1012
+#define ID_SETZLKRYSTAL      1013
+
+#define ID_SETCORB		 1014
+#define ID_SETMORB       1015
+#define ID_SETOORB       1016
+#define ID_SETZORB       1017
+#define ID_SETZLORB      1018
+
+#define ID_SETPENIZ      1019
+#define ID_SETBEDNA      1020
+#define ID_SETZED        1021
+#define ID_SETZEDO      1022
+
+#define ID_SETSTART     1027
+
+#define ID_SMAZANI      1023
+#define ID_SMAZANI_P    1024
 
 #define IDR_MAINFRAME                   128
 #define IDM_OPEN                        254

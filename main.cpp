@@ -1,5 +1,6 @@
-// Game1.cpp : Definuje vstupní bod pro aplikaci.
-//
+#define _WINSOCK_DEPRECATED_NO_WARNINGS
+#define _CRT_SECURE_NO_WARNINGS
+
 #pragma warning(disable : 4996)// acess deprecated
 #pragma warning(disable : 4244) // float to long/int
 #pragma warning(disable : 28251) // nekonzistentni poznamka u WinMain
@@ -23,17 +24,24 @@
 #include  <stdio.h>
 #include <string>
 #include <fstream>
+#include <vector>
+#include <sstream>
+#include <algorithm>
 
 #include <shellapi.h>
 #include <atlstr.h>
 #include <CommCtrl.h>
 #include <commdlg.h>
+#include <Shlwapi.h>
 
+#pragma comment(lib, "shlwapi.lib")
 #pragma comment(lib, "comctl32.lib")
 #pragma comment(lib, "User32.lib")
 #pragma comment(lib, "Shell32.lib")
 #pragma comment(lib, "d2d1.lib")
 #pragma comment(lib, "Dwrite")
+#pragma comment(lib,"ws2_32.lib")
+#pragma comment(lib, "windowscodecs.lib")
 
 #include "Resource.h"
 
@@ -62,7 +70,6 @@ inline void SafeRelease(
 #endif
 
 
-
 #ifndef HINST_THISCOMPONENT
 EXTERN_C IMAGE_DOS_HEADER __ImageBase;
 #define HINST_THISCOMPONENT ((HINSTANCE)&__ImageBase)
@@ -76,19 +83,28 @@ int sebr_mk = 0, sebr_ck = 0, sebr_ok = 0, sebr_zk = 0, sebr_zlk = 0;
 int sebr_mo = 0, sebr_co = 0, sebr_oo = 0, sebr_zo = 0, sebr_zlo = 0;
 int sebr_pen = 0;
 
-HWND shared;
+HWND shared/*main window*/, manager/*upload-download manager window*/;
 int x = 2, y = 2;
 int mom_postava = 1;
 
 bool menu = true;
+bool menu2 = false;
+bool darkmode = false;
+bool loaded = false;//pokud se nacetla jina mapa uz drive
 
 int mode = 1;
 string adventure_game_path = "";
+
+bool use_it = false;
+POINT _cursor = { 0,0 };
+
+bool startpos = false;
 
 enum typ_zdi {
     kamen_ = 1,
     kamen_o = 2,
     bedna = 4,
+    start_pos = 5,
     nic__ = 3
 };
 enum typ_podlahy {
@@ -114,26 +130,26 @@ enum typ_predmetu {
 
 //y,x
 typ_zdi zed[10][17] = { {nic__, nic__, nic__, nic__, nic__, nic__, nic__,nic__, nic__,nic__,nic__,nic__,nic__,nic__,nic__,nic__,nic__},
-               {nic__, nic__, nic__, nic__, nic__, nic__, nic__,nic__, nic__,nic__,nic__,nic__,nic__,nic__,nic__,nic__,nic__},
-               {nic__, nic__, nic__, nic__, nic__, nic__, nic__,nic__, nic__,nic__,nic__,nic__,nic__,nic__,nic__,nic__,nic__},
-                {nic__, nic__, nic__, nic__, nic__, nic__, nic__,nic__, nic__,nic__,nic__,nic__,nic__,nic__,nic__,nic__,nic__},
-               {nic__, nic__, nic__, nic__, nic__, nic__, nic__,nic__, nic__,nic__,nic__,nic__,nic__,nic__,nic__,nic__,nic__},
-              {nic__, nic__, nic__, nic__, nic__, nic__, nic__,nic__, nic__,nic__,nic__,nic__,nic__,nic__,nic__,nic__,nic__},
-               {nic__, nic__, nic__, nic__, nic__, nic__, nic__,nic__, nic__,nic__,nic__,nic__,nic__,nic__,nic__,nic__,nic__},
-                {nic__, nic__, nic__, nic__, nic__, nic__, nic__,nic__, nic__,nic__,nic__,nic__,nic__,nic__,nic__,nic__,nic__},
-                {nic__, nic__, nic__, nic__, nic__, nic__, nic__,nic__, nic__,nic__,nic__,nic__,nic__,nic__,nic__,nic__,nic__}, };
+{nic__, nic__, nic__, nic__, nic__, nic__, nic__,nic__, nic__,nic__,nic__,nic__,nic__,nic__,nic__,nic__,nic__},
+{nic__, nic__, nic__, nic__, nic__, nic__, nic__,nic__, nic__,nic__,nic__,nic__,nic__,nic__,nic__,nic__,nic__},
+{nic__, nic__, nic__, nic__, nic__, nic__, nic__,nic__, nic__,nic__,nic__,nic__,nic__,nic__,nic__,nic__,nic__},
+{nic__, nic__, nic__, nic__, nic__, nic__, nic__,nic__, nic__,nic__,nic__,nic__,nic__,nic__,nic__,nic__,nic__},
+{nic__, nic__, nic__, nic__, nic__, nic__, nic__,nic__, nic__,nic__,nic__,nic__,nic__,nic__,nic__,nic__,nic__},
+{nic__, nic__, nic__, nic__, nic__, nic__, nic__,nic__, nic__,nic__,nic__,nic__,nic__,nic__,nic__,nic__,nic__},
+{nic__, nic__, nic__, nic__, nic__, nic__, nic__,nic__, nic__,nic__,nic__,nic__,nic__,nic__,nic__,nic__,nic__},
+{nic__, nic__, nic__, nic__, nic__, nic__, nic__,nic__, nic__,nic__,nic__,nic__,nic__,nic__,nic__,nic__,nic__}, };
 
 //y, x
 typ_podlahy podlaha[10][17] = { {nic,nic,nic,nic,trava,trava,kamen,kamen,kamen,kamen, kamen,kamen,kamen,kamen,kamen,kamen,kamen},
-                {trava, trava,trava,nic, trava, trava, kamen, kamen, kamen,trava, kamen,kamen,kamen,kamen,kamen,kamen,kamen},
-                {trava, trava, kamen, nic, trava, trava, kamen, kamen, trava, trava, kamen,kamen,kamen,kamen,kamen,kamen,kamen},
-                {trava, kamen, trava, trava, trava, kamen, kamen,trava,trava,trava, kamen,kamen,kamen,kamen,kamen,kamen,kamen},
-                {trava, trava, kamen, trava, trava, trava, kamen, kamen, trava, trava, kamen,kamen,kamen,kamen,kamen,kamen,kamen},
-                {trava, trava, kamen, nic, trava, kamen, kamen, kamen, kamen, kamen, kamen,kamen,kamen,kamen,kamen,kamen,kamen},
-                {trava, trava, kamen, nic, trava, trava, kamen, trava, kamen, kamen, kamen,kamen,kamen,kamen,kamen,kamen,kamen},
-                {trava, kamen, kamen, nic, kamen, kamen, trava, trava, trava, kamen, kamen,kamen,kamen,kamen,kamen,kamen,kamen},
-                {kamen, kamen, kamen, kamen, kamen, kamen, kamen, trava, kamen, kamen, kamen,kamen,kamen,kamen,kamen,kamen,kamen},
-                {kamen, kamen, kamen, kamen, kamen, kamen, kamen, kamen, kamen, kamen, kamen,kamen,kamen,kamen,kamen,kamen,kamen} };
+{trava, trava,trava,nic, trava, trava, kamen, kamen, kamen,trava, kamen,kamen,kamen,kamen,kamen,kamen,kamen},
+{trava, trava, kamen, nic, trava, trava, kamen, kamen, trava, trava, kamen,kamen,kamen,kamen,kamen,kamen,kamen},
+{trava, kamen, trava, trava, trava, kamen, kamen,trava,trava,trava, kamen,kamen,kamen,kamen,kamen,kamen,kamen},
+{trava, trava, kamen, trava, trava, trava, kamen, kamen, trava, trava, kamen,kamen,kamen,kamen,kamen,kamen,kamen},
+{trava, trava, kamen, nic, trava, kamen, kamen, kamen, kamen, kamen, kamen,kamen,kamen,kamen,kamen,kamen,kamen},
+{trava, trava, kamen, nic, trava, trava, kamen, trava, kamen, kamen, kamen,kamen,kamen,kamen,kamen,kamen,kamen},
+{trava, kamen, kamen, nic, kamen, kamen, trava, trava, trava, kamen, kamen,kamen,kamen,kamen,kamen,kamen,kamen},
+{kamen, kamen, kamen, kamen, kamen, kamen, kamen, trava, kamen, kamen, kamen,kamen,kamen,kamen,kamen,kamen,kamen},
+{kamen, kamen, kamen, kamen, kamen, kamen, kamen, kamen, kamen, kamen, kamen,kamen,kamen,kamen,kamen,kamen,kamen} };
 typ_predmetu predmety[10][17] = { {nic_,nic_,nic_,nic_,nic_,nic_,nic_,nic_,nic_,nic_, nic_,nic_,nic_,nic_,nic_,nic_,nic_},
 {nic_,nic_,nic_,nic_,nic_,nic_,nic_,nic_,nic_,nic_, nic_,nic_,nic_,nic_,nic_,nic_,nic_},
 {nic_,nic_,nic_,nic_,nic_,nic_,nic_,nic_,nic_,nic_, nic_,nic_,nic_,nic_,nic_,nic_,nic_},
@@ -167,6 +183,33 @@ bool Collision(D2D1_RECT_F sprite1, D2D1_RECT_F sprite2, int width, int height)
 //left = x, top = y, right = x+width, down = y+height
 D2D1_RECT_F SRect(float left, float top, float right, float down) {
     return D2D1::RectF(left, top, right, down);
+}
+
+D2D1_RECT_F SRect2(float left, float top, float width, float height) {
+    return D2D1::RectF(left, top, left+width, top+height);
+}
+
+void FltInfo(float i) {
+    string t = to_string(i);
+    MessageBoxA(NULL, t.c_str(), t.c_str(), MB_OK);
+}
+
+static D2D1_COLOR_F FromRGB(DWORD r, float A = 1.0f)
+{
+    D2D1_COLOR_F C = {};
+    C.r = GetRValue(r) / 255.0f;
+    C.g = GetGValue(r) / 255.0f;
+    C.b = GetBValue(r) / 255.0f;
+    C.a = A;
+    return C;
+}
+D2D1_COLOR_F RGBA(int r, int g, int b, int a = 255) {
+    D2D1_COLOR_F C = {};
+    C.r = r / 255.0f;
+    C.g = g / 255.0f;
+    C.b = b / 255.0f;
+    C.a = a / 255.0f;
+    return C;
 }
 
 void eraseSubStr(std::string& mainStr, const std::string& toErase)
@@ -231,85 +274,292 @@ void KontrolaKrystalu() {
     }
 }
 
-
-//1 - zdi, 0 - cesta, 5 - nas pruchod(vyreseni)
-// Pouziti if(Res(10,17,komrese, 2,2, next_krystalX, next_krystalY)
-//vysldek v mape cesta petkami
-bool Res(int vyska, int sirka, int Map[10][17], int X, int Y, int chtitX, int chtitY)
+std::string base_name(std::string const& path)
 {
-    Map[Y][X] = 5;
-
-    // kontrola konce
-    if (X == chtitX && Y == chtitY)
-    {
-        return true;
-    }
-
-    //rekurzivní systém pro kontrolu dalšího posunu
-        if (X > 0 && Map[Y][X - 1] == 0 && Res(vyska, sirka, Map,X - 1, Y, chtitX, chtitY))
-        {
-            return true;
-        }
-    if (X < sirka && Map[Y][X + 1] == 0 && Res(vyska, sirka, Map, X + 1, Y, chtitX, chtitY))
-    {
-        return true;
-    }
-    if (Y > 0 && Map[Y - 1][X] == 0 && Res(vyska, sirka, Map, X, Y - 1, chtitX, chtitY))
-    {
-        return true;
-    }
-    if (Y < vyska && Map[Y + 1][X] == 0 && Res(vyska, sirka, Map, X, Y+1, chtitX, chtitY))
-    {
-        return true;
-    }
-
-    //back tracking - vracení zpìt
-    Map[Y][X] = 0;
-
-    return false;
+    return path.substr(path.find_last_of("/\\") + 1);
 }
 
-//true pokud jde
-bool JdeSebratVsechnyPredmety() {
-    int Map[10][17], wantX[MAX], wantY[MAX], count = 0;
-    for (int _x = 0; _x < 17; _x++) {
-        for (int _y = 0; _y < 10; _y++) {
-            if ((zed[_y][_x] == typ_zdi::kamen_) || (zed[_y][_x] == typ_zdi::kamen_o) || (zed[_y][_x] == typ_zdi::bedna)) {
-                Map[_y][_x] = 1;
-            }
-            else if ((predmety[_y][_x] == typ_predmetu::krystal_m) || (predmety[_y][_x] == typ_predmetu::krystal_c) || (predmety[_y][_x] == typ_predmetu::krystal_z) || (predmety[_y][_x] == typ_predmetu::krystal_zl) || (predmety[_y][_x] == typ_predmetu::krystal_o)) {
-                wantX[count] = _x;
-                wantY[count] = _y;
-                count++;
-                Map[_y][_x] = 0;
-            }
-            else if ((predmety[_y][_x] == typ_predmetu::orb_m) || (predmety[_y][_x] == typ_predmetu::orb_c) || (predmety[_y][_x] == typ_predmetu::orb_z) || (predmety[_y][_x] == typ_predmetu::orb_zl) || (predmety[_y][_x] == typ_predmetu::orb_o)) {
-                wantX[count] = _x;
-                wantY[count] = _y;
-                count++;
-                Map[_y][_x] = 0;
-            }
-            else if (predmety[_y][_x] == typ_predmetu::peniz) {
-                wantX[count] = _x;
-                wantY[count] = _y;
-                count++;
-                Map[_y][_x] = 0;
-            }
-            else {
-                Map[_y][_x] = 0;
-            }
+/*
+
+-------------------------------------------------------------------------------------------------------------
+SEKCE PRIPOJENI K SERVERU
+-------------------------------------------------------------------------------------------------------------
+
+*/
+
+
+void mParseUrl(char* mUrl, string& serverName, string& filepath, string& filename)
+{
+    string::size_type n;
+    string url = mUrl;
+
+    if (url.substr(0, 7) == "http://")
+        url.erase(0, 7);
+
+    if (url.substr(0, 8) == "https://")
+        url.erase(0, 8);
+
+    n = url.find('/');
+    if (n != string::npos)
+    {
+        serverName = url.substr(0, n);
+        filepath = url.substr(n);
+        n = filepath.rfind('/');
+        filename = filepath.substr(n + 1);
+    }
+
+    else
+    {
+        serverName = url;
+        filepath = "/";
+        filename = "";
+    }
+}
+
+SOCKET connectToServer(char* szServerName, WORD portNum)
+{
+    struct hostent* hp;
+    unsigned int addr;
+    struct sockaddr_in server;
+    SOCKET conn;
+
+    conn = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+    if (conn == INVALID_SOCKET)
+        return NULL;
+
+    if (inet_addr(szServerName) == INADDR_NONE)
+    {
+        hp = gethostbyname(szServerName);
+    }
+    else
+    {
+        addr = inet_addr(szServerName);
+        hp = gethostbyaddr((char*)&addr, sizeof(addr), AF_INET);
+    }
+
+    if (hp == NULL)
+    {
+        closesocket(conn);
+        return NULL;
+    }
+
+    server.sin_addr.s_addr = *((unsigned long*)hp->h_addr);
+    server.sin_family = AF_INET;
+    server.sin_port = htons(portNum);
+    if (connect(conn, (struct sockaddr*)&server, sizeof(server)))
+    {
+        closesocket(conn);
+        return NULL;
+    }
+    return conn;
+}
+
+int getHeaderLength(char* content)
+{
+    const char* srchStr1 = "\r\n\r\n", * srchStr2 = "\n\r\n\r";
+    char* findPos;
+    int ofset = -1;
+
+    findPos = strstr(content, srchStr1);
+    if (findPos != NULL)
+    {
+        ofset = findPos - content;
+        ofset += strlen(srchStr1);
+    }
+
+    else
+    {
+        findPos = strstr(content, srchStr2);
+        if (findPos != NULL)
+        {
+            ofset = findPos - content;
+            ofset += strlen(srchStr2);
         }
     }
-    for (int i = 0; i < count; i++) {
-        //2,2 -> start pos(x,y)
-        if (!Res(10, 17, Map, 2, 2, wantX[i], wantY[i]) ){
-            return false;
+    return ofset;
+}
+void mBox(string t, string t2, UINT i) {
+    MessageBoxA(NULL, t.c_str(), t2.c_str(), i);
+}
+
+void IntInfo(int i) {
+    string t = to_string(i);
+    MessageBoxA(NULL, t.c_str(), t.c_str(), MB_OK);
+}
+char* readUrl2(char* szUrl, long& bytesReturnedOut, char** headerOut)
+{
+    const int bufSize = 6000;
+    char readBuffer[bufSize], sendBuffer[bufSize], tmpBuffer[bufSize];
+    char* tmpResult = NULL, * result;
+    SOCKET conn;
+    string server="", filepath="", filename="";
+    long totalBytesRead, thisReadSize, headerLen;
+
+    mParseUrl(szUrl, server, filepath, filename);
+
+    //connect 
+    conn = connectToServer((char*)"paternremembergame.tode.cz", 80);
+    if (conn == NULL) {
+        IntInfo(5555);
+    }
+    //send GET request
+    sprintf(tmpBuffer, "GET %s HTTP/1.0", filepath.c_str());
+    strcpy(sendBuffer, tmpBuffer);
+    strcat(sendBuffer, "\r\n");//paternremembergame.tode.cz
+    strcat(tmpBuffer, "\r\nHost: paternremembergame.tode.cz");
+    strcat(sendBuffer, tmpBuffer);
+    strcat(sendBuffer, "\r\n");
+    strcat(sendBuffer, "\r\n");
+    send(conn, sendBuffer, strlen(sendBuffer), 0);
+    printf("Buffer being sent:\n%s", sendBuffer);
+
+    // Receive until the peer closes the connection
+    totalBytesRead = 0;
+    while (1)
+    {
+        memset(readBuffer, 0, bufSize);
+        thisReadSize = recv(conn, readBuffer, bufSize, 0);
+
+        if (thisReadSize <= 0)
+            break;
+
+        tmpResult = (char*)realloc(tmpResult, thisReadSize + totalBytesRead);
+        memcpy(tmpResult + totalBytesRead, readBuffer, thisReadSize);
+        totalBytesRead += thisReadSize;
+    }
+    headerLen = getHeaderLength(tmpResult);
+    long contenLen = totalBytesRead - headerLen;
+    result = new char[contenLen + 1];
+    memcpy(result, tmpResult + headerLen, contenLen);
+    result[contenLen] = 0x0;
+    char* myTmp;
+
+    myTmp = new char[headerLen + 1];
+    strncpy(myTmp, tmpResult, headerLen);
+    myTmp[headerLen] = NULL;
+    delete(tmpResult);
+    *headerOut = myTmp;
+
+    bytesReturnedOut = contenLen;
+    closesocket(conn);
+    return(result);
+}
+
+string ReplaceAll(string str, const string& from, const string& to) {
+    size_t start_pos = 0;
+    while ((start_pos = str.find(from, start_pos)) != string::npos) {
+        str.replace(start_pos, from.length(), to);
+        start_pos += to.length();
+    }
+    return str;
+}
+string StringToHttpRequest(string text) {
+    //viz https://www.w3schools.com/tags/ref_urlencode.asp
+    string tmp = text;
+    tmp = ReplaceAll(tmp, " ", "%20");
+    tmp = ReplaceAll(tmp, "\n", "%0D%0A");//CRLF
+    tmp = ReplaceAll(tmp, "\t", "%09");
+    return tmp;
+}
+
+
+int Upload(string mapname, string content) {
+    //errory: https://docs.microsoft.com/en-us/windows/win32/winsock/windows-sockets-error-codes-2
+    SOCKET con = NULL;
+    WSADATA wsaData;
+    if (WSAStartup(0x101, &wsaData) != 0) {
+        string message = "Cant startup winsocket, do you have wifi turned on?\nError code: " + to_string(WSAGetLastError());
+        MessageBoxA(NULL, message.c_str(), "error", MB_OK | MB_ICONERROR);
+        return 1;
+    }
+    con = connectToServer((char*)"paternremembergame.tode.cz", 80);
+    if (con == INVALID_SOCKET) {
+        string message = "Cant connect to server, do you have wifi turned on?\nError code: " + to_string(WSAGetLastError());
+        MessageBoxA(NULL, message.c_str(), "error", MB_OK | MB_ICONERROR);
+        return 2;
+    }
+    string sendBuf;
+    stringstream ss;
+    ss << "GET /test.php?createfile=maps/" << mapname << "&content=" << content << "&use_log=1 HTTP/1.1";
+    ss << "\r\nHost: paternremembergame.tode.cz";
+    ss << "\r\n";
+    ss << "\r\n";
+    sendBuf = ss.str();
+    int response = send(con, (char*)sendBuf.c_str(), sendBuf.length(), 0);
+    if (response == SOCKET_ERROR) {
+        if (con == INVALID_SOCKET) {
+            string message = "Cant send map to server, are in file special or local keys?\nError code: " + to_string(WSAGetLastError());
+            MessageBoxA(NULL, message.c_str(), "error", MB_OK | MB_ICONERROR);
         }
+        closesocket(con);
+        WSACleanup();
+        return 3;
+    }
+    closesocket(con);
+    return 0;
+    WSACleanup();
+}
+
+string LoadFileToString(string filename) {
+    ifstream t(filename.c_str());
+    stringstream buffer;
+    buffer << t.rdbuf();
+    t.close();
+    return buffer.str();
+}
+
+
+
+BOOL GetMapFromServer(string mapname) {
+    mapname = StringToHttpRequest(mapname);
+    WSADATA wsaData;
+    const int bufLen = 1024;
+    string url = "https://paternremembergame.tode.cz/test.php?file=" + mapname;
+    char* szUrl = &url[0];
+    long fileSize=0;
+    char* memBuffer, * headerBuffer;
+    FILE* fp;
+
+    memBuffer = headerBuffer = NULL;
+    if (WSAStartup(0x101, &wsaData) != 0) {
+        return 0;
+    }
+    memBuffer = readUrl2(szUrl, fileSize, &headerBuffer);
+    //readed data
+    if (fileSize != 0)
+    {
+        fp = fopen(mapname.c_str(), "wb");
+        fwrite(memBuffer, 1, fileSize, fp);
+        fclose(fp);
+        delete(memBuffer);
+        delete(headerBuffer);
+    }
+    return 1;
+    WSACleanup();
+}
+BOOL UploadMapToServer(string mapname) {
+    //oddelani mezer, carrige returnu, novy radku -> na http request
+    if (!exist_read_file(mapname)) {
+        return false;
+    }
+    string content = LoadFileToString(mapname);
+    mapname = base_name(mapname.c_str());
+    content = StringToHttpRequest(content);
+    mapname = StringToHttpRequest(mapname);
+    if (Upload(mapname, content) > 0) {
+        return false;
     }
     return true;
+    WSACleanup();
 }
 
+/*
 
+-------------------------------------------------------------------------------------------------------------
+KONEC SEKCE PRIPOJENI K SERVERU
+-------------------------------------------------------------------------------------------------------------
+
+*/
 
 HWND CreateChoose(HWND hwndParent) {
     // 46, 28, 81, 12
@@ -322,9 +572,9 @@ HWND CreateChoose(HWND hwndParent) {
         CBS_DROPDOWN | CBS_HASSTRINGS | WS_CHILD | WS_OVERLAPPED | WS_VISIBLE,
         xpos, ypos, nwidth, nheight, hwndParent, NULL, HINST_THISCOMPONENT,
         NULL);
-    TCHAR Planets[18][20] =
+    TCHAR Planets[19][20] =
     {
-        TEXT("trava"), TEXT("kamen-podlaha"), TEXT("kamen-zed"), TEXT("bedna"), TEXT("nic-podlaha"), TEXT("nic-predmet"), TEXT("krystal cerveny"), TEXT("krystal modry"), TEXT("krystal oranzovy"), TEXT("krystal zeleny"), TEXT("krystal zluty"), TEXT("kamen ornament"), TEXT("orb cerveny"), TEXT("orb modry"), TEXT("orb zeleny"), TEXT("orb oranzovy"), TEXT("orb zluty"), TEXT("peniz")
+        TEXT("trava"), TEXT("kamen-podlaha"), TEXT("kamen-zed"), TEXT("bedna"), TEXT("nic-podlaha"), TEXT("nic-predmet"), TEXT("krystal cerveny"), TEXT("krystal modry"), TEXT("krystal oranzovy"), TEXT("krystal zeleny"), TEXT("krystal zluty"), TEXT("kamen ornament"), TEXT("orb cerveny"), TEXT("orb modry"), TEXT("orb zeleny"), TEXT("orb oranzovy"), TEXT("orb zluty"), TEXT("peniz"), TEXT("startpos")
     };
 
     TCHAR A[18];
@@ -338,20 +588,8 @@ HWND CreateChoose(HWND hwndParent) {
         // Add string to combobox.
         SendMessage(hWndComboBox, (UINT)CB_ADDSTRING, (WPARAM)0, (LPARAM)A);
     }
-
-    // Send the CB_SETCURSEL message to display an initial item 
-    //  in the selection field  
     SendMessage(hWndComboBox, CB_SETCURSEL, (WPARAM)2, (LPARAM)0);
     return hWndComboBox;
-}
-
-void IntInfo(int i) {
-    string t = to_string(i);
-    MessageBoxA(NULL, t.c_str(), t.c_str(), MB_OK);
-}
-
-void mBox(string t, string t2, UINT i) {
-    MessageBoxA(NULL, t.c_str(), t2.c_str(), i);
 }
 
 INT_PTR CALLBACK EditChoose(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
@@ -407,54 +645,73 @@ INT_PTR CALLBACK EditChoose(HWND hDlg, UINT message, WPARAM wParam, LPARAM lPara
                 mode = 4;
             }
             else if (ItemIndex == 3) {
-                mode = 3;
+                mode = 18;
             }
             else if (ItemIndex == 4) {
-                mode = 7;
+                mode = 3;
             }
             else if (ItemIndex == 5) {
-                mode = 6;
+                mode = 7;
             }
             else if (ItemIndex == 6) {
                 mode = 5;
             }
             else if (ItemIndex == 7) {
-                mode = 9;
+                mode = 6;
             }
             else if (ItemIndex == 8) {
-                mode = 8;
+                mode = 9;
             }
             else if (ItemIndex == 9) {
-                mode = 10;
+                mode = 8;
             }
             else if (ItemIndex == 10) {
-                mode = 11;
+                mode = 10;
             }
             else if (ItemIndex == 11) {
-                mode = 13;
+                mode = 11;
             }
             else if (ItemIndex == 12) {
-                mode = 12;
+                mode = 13;
             }
             else if (ItemIndex == 13) {
-                mode = 15;
+                mode = 12;
             }
             else if (ItemIndex == 14) {
-                mode = 14;
+                mode = 15;
             }
             else if (ItemIndex == 15) {
-                mode = 16;
+                mode = 14;
             }
             else if (ItemIndex == 16) {
-                mode = 17;
+                mode = 16;
             }
             else if (ItemIndex == 17) {
-                mode = 18;
+                mode = 17;
+            }
+            else if (ItemIndex == 18) {
+                mode = 19;
             }
         }
         break;
     }
     return (INT_PTR)FALSE;
+}
+
+COORD coord(int x, int y) {
+    COORD i = { x,y };
+    return i;
+}
+
+COORD find_startpos() {
+    for (int x = 0; x < 17; x++) {
+        for (int y = 0; y < 10; y++) {
+            if (zed[y][x] == typ_zdi::start_pos) {
+                return coord(x, y);
+            }
+        }
+    }
+    return coord(-1,-1);
 }
 
 //true v poradku jinak false
@@ -466,6 +723,8 @@ bool LoadFile(string open_file_name) {
         in >> height;
         in >> startposx;
         in >> startposy;
+        x = startposx;
+        y = startposy;
         for (int _y = 0; _y < 10; _y++) {
             for (int _x = 0; _x < 17; _x++) {
                 int _t;
@@ -555,11 +814,286 @@ bool LoadFile(string open_file_name) {
     return true;
 }
 
-class DemoApp
+void LoadLevel(int level) {
+    if (level == 1) {
+        LoadFile("lets_go.txt");
+    }
+    else if (level == 2) {
+        LoadFile("lets_go.txt");
+    }
+}
+
+RECT GetWindowPos() {
+    RECT pos;
+    pos.left = NULL;
+    pos.right = NULL;
+    pos.top = NULL;
+    pos.bottom = NULL;
+    GetWindowRect(shared, &pos);
+    return pos;
+}
+
+class Button {
+public:
+    D2D1_RECT_F pos;
+    ID2D1HwndRenderTarget* target;
+    IDWriteTextFormat* format;
+    ID2D1SolidColorBrush* color, *colortext;
+    wstring text;
+
+    Button() {
+        pos = { 0,0,0,0 };
+        target = NULL;
+        format = NULL;
+        color = NULL;
+        colortext = NULL;
+        text = L"";
+    }
+    ~Button() {
+        pos = { 0,0,0,0 };
+        target = NULL;
+        format = NULL;
+        color = NULL;
+        colortext = NULL;
+        text = L"";
+    }
+    Button(Button& src) {
+        pos = src.pos;
+        target = src.target;
+        format = src.format;
+        color = src.color;
+        text = src.text;
+        colortext = src.colortext;
+    }
+    Button(D2D1_RECT_F _pos, ID2D1HwndRenderTarget* _target, IDWriteTextFormat* _format, ID2D1SolidColorBrush* _color, ID2D1SolidColorBrush* _colortext, wstring _text) {
+        pos = _pos;
+        target = _target;
+        format = _format;
+        color = _color;
+        text = _text;
+        colortext = _colortext;
+    }
+    float GetWidth() {
+        return (pos.right - pos.left);
+    }
+    float GetHeight() {
+        return (pos.bottom - pos.top);
+    }
+
+    HRESULT CreateFormat(IDWriteFactory * writeFactory, LPCWSTR fontname, float fontsize, bool align_center) {
+        HRESULT hr = writeFactory->CreateTextFormat(
+            fontname,
+            NULL,
+            DWRITE_FONT_WEIGHT_NORMAL,
+            DWRITE_FONT_STYLE_NORMAL,
+            DWRITE_FONT_STRETCH_NORMAL,
+            fontsize,
+            L"", //locale
+            &format
+        );
+        if (align_center) {
+            format->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_CENTER);
+        }
+
+        return hr;
+    }
+    HRESULT CreateColor(D2D1_COLOR_F col) {
+        HRESULT hr = target->CreateSolidColorBrush(
+            col,
+            &color
+        );
+        return hr;
+    }
+    HRESULT CreateColorText(D2D1_COLOR_F col) {
+        HRESULT hr = target->CreateSolidColorBrush(
+            col,
+            &colortext
+        );
+        return hr;
+    }
+    void CreatePos(float x, float y, float width, float height) {
+        pos.left = x;
+        pos.top = y;
+        pos.bottom = y + height;
+        pos.right = x + width;
+    }
+    void SetTarget(ID2D1HwndRenderTarget* _target) {
+        target = _target;
+    }
+    void SetFormat(IDWriteTextFormat* _format) {
+        format = _format;
+    }
+    void SetText(wstring _text) {
+        text = _text;
+    }
+    void SetPos(D2D1_RECT_F _pos) {
+        pos = _pos;
+    }
+    void SetColor(ID2D1SolidColorBrush* _color) {
+        color = _color;
+    }
+    void SetColor2(D2D1_COLOR_F col) {
+        color->SetColor(col);
+    }
+    void SetColorText(ID2D1SolidColorBrush* _colortext) {
+        colortext = _colortext;
+    }
+    void SetColorText2(D2D1_COLOR_F col) {
+        colortext->SetColor(col);
+    }
+    bool HitTest(POINT cursorpos, RECT winpos) {
+        if ((cursorpos.y > (winpos.top + pos.top + 29)) && (cursorpos.x > (winpos.left + pos.left)) && (cursorpos.y < (winpos.top + 29 + pos.bottom)) && (cursorpos.x < (winpos.left + pos.right))) {
+            return true;
+        }
+        return false;
+    }
+    void Draw() {
+        target->FillRectangle(pos, color);
+        target->DrawText(
+            text.c_str(),
+            text.length()+1,
+            format,
+            pos,
+            colortext
+        );
+    }
+    bool Erorr() {
+        if (target == NULL || format == NULL || color == NULL || colortext == NULL || text == L"" || (pos.left == 0 && pos.right == 0 && pos.bottom == 0 && pos.top == 0)) {
+            return true;
+        }
+        return false;
+    }
+    void Release() {
+        pos = { 0,0,0,0 };
+        target = NULL;
+        format = NULL;
+        color = NULL;
+        colortext = NULL;
+        text = L"";
+    }
+};
+class Text {
+public:
+    D2D1_RECT_F pos;
+    ID2D1HwndRenderTarget* target;
+    IDWriteTextFormat* format;
+    ID2D1SolidColorBrush *colortext;
+    wstring text;
+    Text() {
+        pos = { 0,0,0,0 };
+        target = NULL;
+        format = NULL;
+        colortext = NULL;
+        text = L"";
+    }
+    ~Text() {
+        pos = { 0,0,0,0 };
+        target = NULL;
+        format = NULL;
+        colortext = NULL;
+        text = L"";
+    }
+    Text(Text& src) {
+        target = src.target;
+        format = src.format;
+        text = src.text;
+        pos = src.pos;
+        colortext = src.colortext;
+    }
+    Text(D2D1_RECT_F _pos, ID2D1HwndRenderTarget* _target, IDWriteTextFormat* _format, ID2D1SolidColorBrush* _colortext, wstring _text) {
+        pos = _pos;
+        target = _target;
+        format = _format;
+        text = _text;
+        colortext = _colortext;
+    }
+    float GetWidth() {
+        return (pos.right - pos.left);
+    }
+    float GetHeight() {
+        return (pos.bottom - pos.top);
+    }
+
+    HRESULT CreateFormat(IDWriteFactory * writeFactory, LPCWSTR fontname, float fontsize) {
+        HRESULT hr = writeFactory->CreateTextFormat(
+            fontname,
+            NULL,
+            DWRITE_FONT_WEIGHT_NORMAL,
+            DWRITE_FONT_STYLE_NORMAL,
+            DWRITE_FONT_STRETCH_NORMAL,
+            fontsize,
+            L"", //locale
+            &format
+        );
+        return hr;
+    }
+    HRESULT CreateColorText(D2D1_COLOR_F col) {
+        HRESULT hr = target->CreateSolidColorBrush(
+            col,
+            &colortext
+        );
+        return hr;
+    }
+    void CreatePos(float x, float y, float width, float height) {
+        pos.left = x;
+        pos.top = y;
+        pos.bottom = y + height;
+        pos.right = x + width;
+    }
+    void SetTarget(ID2D1HwndRenderTarget* _target) {
+        target = _target;
+    }
+
+    void SetFormat(IDWriteTextFormat* _format) {
+        format = _format;
+    }
+    void SetText(wstring _text) {
+        text = _text;
+    }
+    void SetPos(D2D1_RECT_F _pos) {
+        pos = _pos;
+    }
+    void SetColorText(ID2D1SolidColorBrush* _colortext) {
+        colortext = _colortext;
+    }
+    bool HitTest(POINT cursorpos, RECT winpos) {
+        if ((cursorpos.y > (winpos.top + pos.top + 29)) && (cursorpos.x > (winpos.left + pos.left)) && (cursorpos.y < (winpos.top + 29 + pos.bottom)) && (cursorpos.x < (winpos.left + pos.right))) {
+            return true;
+        }
+        return false;
+    }
+    void Draw() {
+        target->DrawText(
+            text.c_str(),
+            text.length()+1,
+            format,
+            pos,
+            colortext
+        );
+    }
+    bool Erorr() {
+        if (target == NULL || format == NULL || colortext == NULL || text == L"" || (pos.left == 0 && pos.right == 0 && pos.bottom == 0 && pos.top == 0)) {
+            return true;
+        }
+        return false;
+    }
+    void Release() {
+        pos = { 0,0,0,0 };
+        target = NULL;
+        format = NULL;
+        colortext = NULL;
+        text = L"";
+    }
+};
+
+Button play, mapedit, play2, back, _1, _2, _exitbut;
+Text sometext, choose;
+
+class AdentureGame
 {
 public:
-    DemoApp();
-    ~DemoApp();
+    AdentureGame();
+    ~AdentureGame();
 
     // Register the window class and call methods for instantiating drawing resources
     HRESULT Initialize();
@@ -605,7 +1139,7 @@ private:
         ID2D1Bitmap** ppBitmap
     );
 
-    // The windows procedure.
+
     static LRESULT CALLBACK WndProc(
         HWND hWnd,
         UINT message,
@@ -616,10 +1150,10 @@ private:
     HWND m_hwnd;
     ID2D1Factory* m_pDirect2dFactory;
     ID2D1HwndRenderTarget* m_pRenderTarget;
-    ID2D1SolidColorBrush* m_pLightSlateGrayBrush;
+    ID2D1SolidColorBrush* m_pMyBrush, * m_pMyBrush2, *m_pMyBrush3, * m_pMyBrush4,* m_pMyBrush5, *m_pMyBrush6,* m_pMyBrush7;
     ID2D1SolidColorBrush* m_pCornflowerBlueBrush;
     IWICImagingFactory* m_pWICFactory;
-    ID2D1SolidColorBrush* m_pBrush1;
+    ID2D1SolidColorBrush* m_pBrush1, * white;
 
     IDWriteFactory* m_pDWriteFactory;
     IDWriteTextFormat* m_pTextFormat, *mini_text;
@@ -628,14 +1162,15 @@ private:
     ID2D1Bitmap* pos1, * pos2, * pos3, * pos4, * kamen, * kamen2;//postavy
     ID2D1Bitmap* trava, * krystal_m, * krystal_c, * krystal_z, * krystal_o, * krystal_zl;
     ID2D1Bitmap* orb_m, * orb_c, * orb_z, * orb_o, * orb_zl;//orby
-    ID2D1Bitmap* peniz, *bedna;
+    ID2D1Bitmap* peniz, * bedna, * startpos, * cihlazed;
+
 };
 
-DemoApp::DemoApp() :
+AdentureGame::AdentureGame() :
     m_hwnd(NULL),
     m_pDirect2dFactory(NULL),
     m_pRenderTarget(NULL),
-    m_pLightSlateGrayBrush(NULL),
+    m_pMyBrush(NULL),
     m_pCornflowerBlueBrush(NULL),
     m_pBrush1(NULL),
     postava(NULL),
@@ -663,16 +1198,25 @@ DemoApp::DemoApp() :
     m_pTextFormat(NULL),
     mini_text(NULL),
     peniz(NULL),
-    bedna(NULL)
+    bedna(NULL),
+    m_pMyBrush2(NULL),
+    m_pMyBrush3(NULL),
+    m_pMyBrush4(NULL),
+    m_pMyBrush5(NULL),
+    m_pMyBrush6(NULL),
+    m_pMyBrush7(NULL),
+    startpos(NULL),
+    white(NULL),
+    cihlazed(NULL)
 {
 }
 
 
-DemoApp::~DemoApp()
+AdentureGame::~AdentureGame()
 {
     SafeRelease(&m_pDirect2dFactory);
     SafeRelease(&m_pRenderTarget);
-    SafeRelease(&m_pLightSlateGrayBrush);
+    SafeRelease(&m_pMyBrush);
     SafeRelease(&m_pCornflowerBlueBrush);
     SafeRelease(&m_pBrush1);
     SafeRelease(&postava);
@@ -701,10 +1245,19 @@ DemoApp::~DemoApp()
     SafeRelease(&mini_text);
     SafeRelease(&peniz);
     SafeRelease(&bedna);
+    SafeRelease(&m_pMyBrush2);
+    SafeRelease(&m_pMyBrush3);
+    SafeRelease(&m_pMyBrush4);
+    SafeRelease(&m_pMyBrush5);
+    SafeRelease(&m_pMyBrush6);
+    SafeRelease(&m_pMyBrush7);
+    SafeRelease(&startpos);
+    SafeRelease(&white);
+    SafeRelease(&cihlazed);
 }
 
 
-HRESULT DemoApp::LoadResourceBitmap(
+HRESULT AdentureGame::LoadResourceBitmap(
     ID2D1RenderTarget* pRenderTarget,
     IWICImagingFactory* pIWICFactory,
     PCWSTR resourceName,
@@ -866,7 +1419,7 @@ HRESULT DemoApp::LoadResourceBitmap(
 // Creates a Direct2D bitmap from the specified
 // file name.
 //
-HRESULT DemoApp::LoadBitmapFromFile(
+HRESULT AdentureGame::LoadBitmapFromFile(
     ID2D1RenderTarget* pRenderTarget,
     IWICImagingFactory* pIWICFactory,
     PCWSTR uri,
@@ -978,7 +1531,7 @@ HRESULT DemoApp::LoadBitmapFromFile(
     return hr;
 }
 
-void DemoApp::RunMessageLoop()
+void AdentureGame::RunMessageLoop()
 {
     MSG msg;
 
@@ -989,7 +1542,7 @@ void DemoApp::RunMessageLoop()
     }
 }
 
-HRESULT DemoApp::Initialize()
+HRESULT AdentureGame::Initialize()
 {
     HRESULT hr;
 
@@ -1002,7 +1555,7 @@ HRESULT DemoApp::Initialize()
         // Register the window class.
         WNDCLASSEX wcex = { sizeof(WNDCLASSEX) };
         wcex.style = CS_HREDRAW | CS_VREDRAW;
-        wcex.lpfnWndProc = DemoApp::WndProc;
+        wcex.lpfnWndProc = AdentureGame::WndProc;
         wcex.cbClsExtra = 0;
         wcex.cbWndExtra = sizeof(LONG_PTR);
         wcex.hInstance = HINST_THISCOMPONENT;
@@ -1011,7 +1564,7 @@ HRESULT DemoApp::Initialize()
         wcex.hCursor = LoadCursor(NULL, IDI_APPLICATION);
         wcex.hIconSm = LoadIcon(GetModuleHandle(NULL), MAKEINTRESOURCE(IDI_ICON));
         wcex.hIcon = LoadIcon(GetModuleHandle(NULL), MAKEINTRESOURCE(IDI_SMALL));
-        wcex.lpszClassName = L"D2DDemoApp";//IDI_SMALL
+        wcex.lpszClassName = L"D2DAdentureGame";//IDI_SMALL
 
         RegisterClassEx(&wcex);
 
@@ -1024,13 +1577,13 @@ HRESULT DemoApp::Initialize()
 
         // Create the window.
         m_hwnd = CreateWindow(
-            L"D2DDemoApp",
+            L"D2DAdentureGame",
             L"Adventure Game",
             WS_OVERLAPPEDWINDOW,
             CW_USEDEFAULT,
             CW_USEDEFAULT,
-            static_cast<UINT>(ceil(640.f * dpiX / 96.f)),
-            static_cast<UINT>(ceil(480.f * dpiY / 96.f)),
+            static_cast<UINT>(ceil(800.f * dpiX / 96.f)),
+            static_cast<UINT>(ceil(650.f * dpiY / 96.f)),
             NULL,
             NULL,
             HINST_THISCOMPONENT,
@@ -1048,6 +1601,126 @@ HRESULT DemoApp::Initialize()
     return hr;
 }
 
+//Manager window 
+
+LRESULT CALLBACK ManagerProc(
+    HWND hWnd,
+    UINT message,
+    WPARAM wParam,
+    LPARAM lParam
+);
+
+//creates and shows manager window
+HRESULT CreateManagerWindow() {
+    HRESULT hr;
+    WNDCLASSEX wcex = { sizeof(WNDCLASSEX) };
+    wcex.style = CS_HREDRAW | CS_VREDRAW;
+    wcex.lpfnWndProc = ManagerProc;
+    wcex.cbClsExtra = 0;
+    wcex.cbWndExtra = sizeof(LONG_PTR);
+    wcex.hInstance = HINST_THISCOMPONENT;
+    wcex.hbrBackground = NULL;
+    wcex.lpszMenuName = NULL;
+    wcex.hCursor = LoadCursor(NULL, IDI_APPLICATION);
+    wcex.hIconSm = LoadIcon(GetModuleHandle(NULL), MAKEINTRESOURCE(IDI_ICON));
+    wcex.hIcon = LoadIcon(GetModuleHandle(NULL), MAKEINTRESOURCE(IDI_SMALL));
+    wcex.lpszClassName = L"D2DAdentureGameManager";//IDI_SMALL
+    RegisterClassEx(&wcex);
+    manager = CreateWindow(
+        L"D2DAdentureGameManager",
+        L"Adventure Game Upload-Download Map Manager",
+        WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX | WS_MAXIMIZEBOX,
+        CW_USEDEFAULT,
+        CW_USEDEFAULT,
+        600,
+        600,
+        NULL,
+        NULL,
+        HINST_THISCOMPONENT,
+        nullptr
+    );
+    hr = manager ? S_OK : E_FAIL;
+    if (SUCCEEDED(hr))
+    {
+        ShowWindow(manager, SW_NORMAL);
+        UpdateWindow(manager);
+    }
+    return hr;
+}
+
+LRESULT CALLBACK ManagerProc(HWND hWnd,UINT message,WPARAM wParam,LPARAM lParam) {
+    switch (message) {
+    case WM_CREATE: 
+    {
+        //DeleteMenu(GetSystemMenu(hWnd, FALSE), SC_CLOSE, MF_BYCOMMAND);
+        DeleteMenu(GetSystemMenu(hWnd, FALSE), SC_MAXIMIZE, MF_BYCOMMAND);
+        DrawMenuBar(hWnd);
+        DragAcceptFiles(hWnd, true);
+    }break;
+    case WM_PAINT:
+    {
+        HDC dc = GetDC(hWnd);
+        RECT rc = {120,200,600,600};
+        HFONT hFont;
+        hFont = CreateFont(30, 10, 0, 0, FW_DONTCARE, FALSE, FALSE, FALSE, DEFAULT_CHARSET, OUT_OUTLINE_PRECIS,
+            CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY, VARIABLE_PITCH, TEXT("Times New Roman"));
+        SelectObject(dc, hFont);
+        DrawText(dc, L"Drag & Drop here Maps to upload", -1, &rc, DT_SINGLELINE | DT_NOCLIP);
+        RECT  rect;
+        PAINTSTRUCT ps;
+        HDC hdc = BeginPaint(hWnd, &ps);
+        DeleteDC(dc);
+        DeleteObject(hFont);
+    }break;
+    case WM_DROPFILES:
+    {
+        HDROP hdrop =(HDROP)wParam;
+        UINT  uNumFiles;
+        char szNextFile[MAX_PATH];
+
+        uNumFiles = DragQueryFileA(hdrop, -1, NULL, 0);
+
+        if (uNumFiles > 0) {
+            if (uNumFiles < 2) {
+                if (DragQueryFileA(hdrop, 0, szNextFile, MAX_PATH) > 0)
+                {
+                    if (MessageBoxA(NULL, szNextFile, "Do you want to upload: ", MB_YESNO | MB_ICONQUESTION) == IDYES) {
+                        string mapname = const_cast<const char*>(szNextFile);
+                        if (UploadMapToServer(mapname)) {
+                            MessageBoxA(NULL, "Map succefuly uploaded to server", "Info", MB_OK);
+                        }
+                        else {
+                            MessageBoxA(NULL, "Map not uploaded to server", "Error", MB_OK | MB_ICONERROR);
+                        }
+                    }
+                    else {
+                        //dismised upload
+                        MessageBoxA(NULL, "Uploading map dismised", "Info", MB_OK);
+                    }
+                }
+                else {
+                    //1 file, but cant query it
+                    MessageBoxA(NULL, "Cant query dragged file", "Error", MB_OK | MB_ICONERROR);
+                }
+            }
+            else {
+                MessageBoxA(NULL, "You can upload only 1 file!", "Warning", MB_OK | MB_ICONASTERISK);
+                // 2+ files 
+            }
+        }
+        DragFinish(hdrop);
+    }break;
+    case WM_DESTROY:
+        //PostQuitMessage(0);
+        DestroyWindow(hWnd);
+        break;
+    default:
+        return DefWindowProc(hWnd, message, wParam, lParam);
+    }
+    return 0;
+}
+
+
 int WINAPI WinMain(
     HINSTANCE /* hInstance */,
     HINSTANCE /* hPrevInstance */,
@@ -1060,7 +1733,7 @@ int WINAPI WinMain(
     if (SUCCEEDED(CoInitialize(NULL)))
     {
         {
-            DemoApp app;
+            AdentureGame app;
 
             if (SUCCEEDED(app.Initialize()))
             {
@@ -1072,7 +1745,7 @@ int WINAPI WinMain(
 
     return 0;
 }
-HRESULT DemoApp::CreateDeviceIndependentResources()
+HRESULT AdentureGame::CreateDeviceIndependentResources()
 {
     HRESULT hr = S_OK;
 
@@ -1132,7 +1805,7 @@ HRESULT DemoApp::CreateDeviceIndependentResources()
     return hr;
 }
 
-HRESULT DemoApp::CreateDeviceResources()
+HRESULT AdentureGame::CreateDeviceResources()
 {
     HRESULT hr = S_OK;
 
@@ -1156,10 +1829,58 @@ HRESULT DemoApp::CreateDeviceResources()
 
         if (SUCCEEDED(hr))
         {
-            // Create a gray brush.
             hr = m_pRenderTarget->CreateSolidColorBrush(
-                D2D1::ColorF(D2D1::ColorF::LightSlateGray),
-                &m_pLightSlateGrayBrush
+               // D2D1::ColorF(D2D1::ColorF::ColorF(0.26f, 0.49f, 0.94f, 1.0f)),
+                RGBA(0, 78, 120,255),
+                &m_pMyBrush
+            );
+        }
+        if (SUCCEEDED(hr))
+        {
+            hr = m_pRenderTarget->CreateSolidColorBrush(
+                // D2D1::ColorF(D2D1::ColorF::ColorF(0.26f, 0.49f, 0.94f, 1.0f)),
+                RGBA(0, 78, 120, 255),
+                &m_pMyBrush2
+            );
+        }
+        if (SUCCEEDED(hr))
+        {
+            hr = m_pRenderTarget->CreateSolidColorBrush(
+                // D2D1::ColorF(D2D1::ColorF::ColorF(0.26f, 0.49f, 0.94f, 1.0f)),
+                RGBA(0, 78, 120, 255),
+                &m_pMyBrush3
+            );
+        }
+        if (SUCCEEDED(hr))
+        {
+            hr = m_pRenderTarget->CreateSolidColorBrush(
+                // D2D1::ColorF(D2D1::ColorF::ColorF(0.26f, 0.49f, 0.94f, 1.0f)),
+                RGBA(0, 78, 120, 255),
+                &m_pMyBrush4
+            );
+        }
+        if (SUCCEEDED(hr))
+        {
+            hr = m_pRenderTarget->CreateSolidColorBrush(
+                // D2D1::ColorF(D2D1::ColorF::ColorF(0.26f, 0.49f, 0.94f, 1.0f)),
+                RGBA(0, 78, 120, 255),
+                &m_pMyBrush5
+            );
+        }
+        if (SUCCEEDED(hr))
+        {
+            hr = m_pRenderTarget->CreateSolidColorBrush(
+                // D2D1::ColorF(D2D1::ColorF::ColorF(0.26f, 0.49f, 0.94f, 1.0f)),
+                RGBA(0, 78, 120, 255),
+                &m_pMyBrush6
+            );
+        }
+        if (SUCCEEDED(hr))
+        {
+            hr = m_pRenderTarget->CreateSolidColorBrush(
+                // D2D1::ColorF(D2D1::ColorF::ColorF(0.26f, 0.49f, 0.94f, 1.0f)),
+                RGBA(0, 78, 120, 255),
+                &m_pMyBrush7
             );
         }
         if (SUCCEEDED(hr))
@@ -1168,6 +1889,14 @@ HRESULT DemoApp::CreateDeviceResources()
             hr = m_pRenderTarget->CreateSolidColorBrush(
                 D2D1::ColorF(D2D1::ColorF::CornflowerBlue),
                 &m_pCornflowerBlueBrush
+            );
+        }
+        if (SUCCEEDED(hr))
+        {
+            // Create a blue brush.
+            hr = m_pRenderTarget->CreateSolidColorBrush(
+                D2D1::ColorF(D2D1::ColorF::White),
+                &white
             );
         }
         if (SUCCEEDED(hr))
@@ -1436,32 +2165,129 @@ HRESULT DemoApp::CreateDeviceResources()
                 &bedna
             );
         }
+        if (SUCCEEDED(hr))
+        {
+            hr = LoadResourceBitmap(
+                m_pRenderTarget,
+                m_pWICFactory,
+                L"startpos",
+                L"Image",
+                500,
+                500,
+                &startpos
+            );
+        }
+        if (SUCCEEDED(hr))
+        {
+            hr = LoadResourceBitmap(
+                m_pRenderTarget,
+                m_pWICFactory,
+                L"cihlazed",
+                L"Image",
+                500,
+                500,
+                &cihlazed
+            );
+        }
+
+        sometext.SetTarget(m_pRenderTarget);
+        sometext.SetColorText(m_pCornflowerBlueBrush);
+        sometext.SetText(L"Adventure Game");
+        sometext.SetPos(SRect2(800, 600, 200, 200));
+        //sometext.CreateFormat(m_pDWriteFactory, L"Century", 30);
+        sometext.SetFormat(m_pTextFormat);
+
+        play.SetColor(m_pMyBrush);
+        //play.CreateColor(D2D1::ColorF(D2D1::ColorF::GreenYellow));
+        play.SetTarget(m_pRenderTarget);
+        play.SetColorText(m_pBrush1);
+        play.SetText(L"Fun Play");
+        play.SetPos(SRect2(600, 400, 200, 200));
+        //play.SetFormat(m_pTextFormat);
+        play.CreateFormat(m_pDWriteFactory, L"Century", 30, true);
+
+        mapedit.SetColor(m_pMyBrush2);
+        //mapedit.CreateColor(D2D1::ColorF(D2D1::ColorF::GreenYellow));
+        mapedit.SetTarget(m_pRenderTarget);
+        mapedit.SetColorText(m_pBrush1);
+        mapedit.SetText(L"Map Editor");
+        mapedit.SetPos(SRect2(600, 700, 200, 200));
+        //play.SetFormat(m_pTextFormat);
+        mapedit.CreateFormat(m_pDWriteFactory, L"Century", 30, true);
+
+        play2.SetColor(m_pMyBrush3);
+        //play.CreateColor(D2D1::ColorF(D2D1::ColorF::GreenYellow));
+        play2.SetTarget(m_pRenderTarget);
+        play2.SetColorText(m_pBrush1);
+        play2.SetText(L"Play");
+        play2.SetPos(SRect2(600, 400, 200, 200));
+        //play.SetFormat(m_pTextFormat);
+        play2.CreateFormat(m_pDWriteFactory, L"Century", 30, true);
+
+        //menu2
+        choose.SetTarget(m_pRenderTarget);
+        choose.SetColorText(m_pCornflowerBlueBrush);
+        choose.SetText(L"Choose a level");
+        choose.SetPos(SRect2(800, 600, 200, 200));
+        choose.SetFormat(m_pTextFormat);
+
+        back.SetColor(m_pMyBrush4);
+        back.SetTarget(m_pRenderTarget);
+        back.SetColorText(m_pBrush1);
+        back.SetText(L"Back");
+        back.SetPos(SRect2(600, 400, 200, 200));
+        back.CreateFormat(m_pDWriteFactory, L"Century", 30, true);
+
+        _1.SetColor(m_pMyBrush5);
+        _1.SetTarget(m_pRenderTarget);
+        _1.SetColorText(m_pBrush1);
+        _1.SetText(L"Level 1");
+        _1.SetPos(SRect2(600, 400, 200, 200));
+        _1.CreateFormat(m_pDWriteFactory, L"Century", 30, true);
+
+        _2.SetColor(m_pMyBrush6);
+        _2.SetTarget(m_pRenderTarget);
+        _2.SetColorText(m_pBrush1);
+        _2.SetText(L"Level 2");
+        _2.SetPos(SRect2(600, 400, 200, 200));
+        _2.CreateFormat(m_pDWriteFactory, L"Century", 30, true);
+
+        _exitbut.SetColor(m_pMyBrush7);
+        _exitbut.SetTarget(m_pRenderTarget);
+        _exitbut.SetColorText(m_pBrush1);
+        _exitbut.SetText(L"Exit");
+        _exitbut.SetPos(SRect2(600, 400, 200, 200));
+        _exitbut.CreateFormat(m_pDWriteFactory, L"Century", 30, true);
+
     }
 
     return hr;
 }
 
-void DemoApp::DiscardDeviceResources()
+void AdentureGame::DiscardDeviceResources()
 {
     SafeRelease(&m_pRenderTarget);
-    SafeRelease(&m_pLightSlateGrayBrush);
+    SafeRelease(&m_pMyBrush);
     SafeRelease(&m_pCornflowerBlueBrush);
 }
 
-LRESULT CALLBACK DemoApp::WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
+LRESULT CALLBACK AdentureGame::WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
     LRESULT result = 0;
 
     if (message == WM_CREATE)
     {
         LPCREATESTRUCT pcs = (LPCREATESTRUCT)lParam;
-        DemoApp* pDemoApp = (DemoApp*)pcs->lpCreateParams;
+        AdentureGame* pAdentureGame = (AdentureGame*)pcs->lpCreateParams;
 
         ::SetWindowLongPtrW(
             hwnd,
             GWLP_USERDATA,
-            reinterpret_cast<LONG_PTR>(pDemoApp)
+            reinterpret_cast<LONG_PTR>(pAdentureGame)
         );
+        //hide title bar
+       // SetWindowLong(hwnd, GWL_STYLE, 0); 
+
         //load if command line argument: Game1 path *map*
         //*map* replace with map full path
         string open_file_name = "";
@@ -1490,6 +2316,12 @@ LRESULT CALLBACK DemoApp::WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM
                 string mes = open_file_name + " neexistuje nebo nelze otevrit";
                 MessageBoxA(NULL, mes.c_str(), "Error", MB_OK | MB_ICONERROR);
             }
+            else {
+                adventure_game = false;
+                menu = false;
+                menu2 = false;
+                SendMessage(hwnd, ID_PLAY, 0, 0);
+            }
         }
 
         result = 1;
@@ -1497,7 +2329,7 @@ LRESULT CALLBACK DemoApp::WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM
     }
     else
     {
-        DemoApp* pDemoApp = reinterpret_cast<DemoApp*>(static_cast<LONG_PTR>(
+        AdentureGame* pAdentureGame = reinterpret_cast<AdentureGame*>(static_cast<LONG_PTR>(
             ::GetWindowLongPtrW(
                 hwnd,
                 GWLP_USERDATA
@@ -1505,7 +2337,7 @@ LRESULT CALLBACK DemoApp::WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM
 
         bool wasHandled = false;
 
-        if (pDemoApp)
+        if (pAdentureGame)
         {
             switch (message)
             {
@@ -1513,11 +2345,12 @@ LRESULT CALLBACK DemoApp::WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM
             {
                 UINT width = LOWORD(lParam);
                 UINT height = HIWORD(lParam);
-                pDemoApp->OnResize(width, height);
+                pAdentureGame->OnResize(width, height);
             }
             result = 0;
             wasHandled = true;
             break;
+
             case WM_RBUTTONDOWN:
             {
                 RECT pos;
@@ -1534,37 +2367,146 @@ LRESULT CALLBACK DemoApp::WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM
                 if (menu) {
                     HMENU hPopupMenu = CreatePopupMenu();
                     InsertMenu(hPopupMenu, 0, MF_BYPOSITION | MF_STRING, ID_PLAY, L"Run adventure game");
+                    InsertMenu(hPopupMenu, 0, MF_BYPOSITION | MF_STRING, ID_PLAY2, L"Run adventure game fun");
                     InsertMenu(hPopupMenu, 0, MF_BYPOSITION | MF_STRING, ID_MAPEDITOR, L"Run map editor");
                     TrackPopupMenu(hPopupMenu, TPM_BOTTOMALIGN | TPM_LEFTALIGN, cursor.x, cursor.y, 0, hwnd, NULL);
                 }
                 if (!adventure_game) {
+                    _cursor.y = cursor.y;
+                    _cursor.x = cursor.x;
                     HMENU hPopupMenu = CreatePopupMenu();
-                    InsertMenu(hPopupMenu, 0, MF_BYPOSITION | MF_STRING, ID_SETTRAVA, L"Set to trava");
-                    InsertMenu(hPopupMenu, 0, MF_BYPOSITION | MF_STRING, ID_SETKAMEN, L"Set to kamen");
+                    InsertMenu(hPopupMenu, 0, MF_BYPOSITION | MF_STRING, ID_SETTRAVA, L"Nastavit na travu");
+                    InsertMenu(hPopupMenu, 0, MF_BYPOSITION | MF_STRING, ID_SETKAMEN, L"Nastavit na kamen-podlaha");
+                    //InsertMenu(hPopupMenu, 0, MF_BYPOSITION | MF_MENUBREAK, 0, L"");
+                    InsertMenu(hPopupMenu, 0, MF_BYPOSITION | MF_STRING, ID_SETZED, L"Nastavit na kamena-zed");
+                    InsertMenu(hPopupMenu, 0, MF_BYPOSITION | MF_STRING, ID_SETBEDNA, L"Nastavit na bednu");
+                    InsertMenu(hPopupMenu, 0, MF_BYPOSITION | MF_STRING, ID_SETZEDO, L"Nastavit na ornament kamen-zed");
+                    //InsertMenu(hPopupMenu, 0, MF_BYPOSITION | MF_MENUBREAK, 0, L"");
+                    InsertMenu(hPopupMenu, 0, MF_BYPOSITION | MF_STRING, ID_SMAZANI, L"Smazani podlahy a zdi");
+                    InsertMenu(hPopupMenu, 0, MF_BYPOSITION | MF_STRING, ID_SMAZANI_P, L"Smazani predmetu");
+                    //InsertMenu(hPopupMenu, 0, MF_BYPOSITION | MF_MENUBREAK, 0, L"");
+                    InsertMenu(hPopupMenu, 0, MF_BYPOSITION | MF_STRING, ID_SETCKRYSTAL, L"Nastavit na cerveny krystal");
+                    InsertMenu(hPopupMenu, 0, MF_BYPOSITION | MF_STRING, ID_SETMKRYSTAL, L"Nastavit na modry krystal");
+                    InsertMenu(hPopupMenu, 0, MF_BYPOSITION | MF_STRING, ID_SETZKRYSTAL, L"Nastavit na zeleny krystal");
+                    InsertMenu(hPopupMenu, 0, MF_BYPOSITION | MF_STRING, ID_SETOKRYSTAL, L"Nastavit na oranzovy krystal");
+                    InsertMenu(hPopupMenu, 0, MF_BYPOSITION | MF_STRING, ID_SETZLKRYSTAL, L"Nastavit na zluty krystal");
+                    //InsertMenu(hPopupMenu, 0, MF_BYPOSITION | MF_MENUBREAK, 0, L"");
+                    InsertMenu(hPopupMenu, 0, MF_BYPOSITION | MF_STRING, ID_SETCORB, L"Nastavit na cerveny orb");
+                    InsertMenu(hPopupMenu, 0, MF_BYPOSITION | MF_STRING, ID_SETMORB, L"Nastavit na modry orb");
+                    InsertMenu(hPopupMenu, 0, MF_BYPOSITION | MF_STRING, ID_SETZORB, L"Nastavit na zeleny orb");
+                    InsertMenu(hPopupMenu, 0, MF_BYPOSITION | MF_STRING, ID_SETOORB, L"Nastavit na oranzovy orb");
+                    InsertMenu(hPopupMenu, 0, MF_BYPOSITION | MF_STRING, ID_SETZLORB, L"Nastavit na zluty orb");
+                    InsertMenu(hPopupMenu, 0, MF_BYPOSITION | MF_STRING, ID_SETPENIZ, L"Nastavit na peniz");
+
+                    InsertMenu(hPopupMenu, 0, MF_BYPOSITION | MF_STRING, ID_SETSTART, L"Nastavit na startpos");
+
                     TrackPopupMenu(hPopupMenu, TPM_BOTTOMALIGN | TPM_LEFTALIGN, cursor.x, cursor.y, 0, hwnd, NULL);
+                }
+            }break;
+            case WM_MOUSEMOVE:
+            {
+                POINT cursor;
+                cursor.x = 0;
+                cursor.y = 0;
+                //                RGBA(0, 78, 120, 255),
+                GetCursorPos(&cursor);
+                if (menu) {
+                    if (play.HitTest(cursor, GetWindowPos())) {
+                        play.SetColor2(RGBA(131, 203, 242, 255));
+                        play2.SetColor2(RGBA(0, 78, 120, 255));
+                        mapedit.SetColor2(RGBA(0, 78, 120, 255));
+                        _exitbut.SetColor2(RGBA(0, 78, 120, 255));
+                        SendMessage(hwnd, WM_PAINT, 0, 0);
+                    }
+                    else if (mapedit.HitTest(cursor, GetWindowPos())) {
+                        mapedit.SetColor2(RGBA(131, 203, 242, 255));
+                        play.SetColor2(RGBA(0, 78, 120, 255));
+                        play2.SetColor2(RGBA(0, 78, 120, 255));
+                        _exitbut.SetColor2(RGBA(0, 78, 120, 255));
+                        SendMessage(hwnd, WM_PAINT, 0, 0);
+                    }
+                    else if (play2.HitTest(cursor, GetWindowPos())) {
+                        play2.SetColor2(RGBA(131, 203, 242, 255));
+                        play.SetColor2(RGBA(0, 78, 120, 255));
+                        mapedit.SetColor2(RGBA(0, 78, 120, 255));
+                        _exitbut.SetColor2(RGBA(0, 78, 120, 255));
+                        SendMessage(hwnd, WM_PAINT, 0, 0);
+                    }
+                    else if (_exitbut.HitTest(cursor, GetWindowPos())) {
+                        _exitbut.SetColor2(RGBA(131, 203, 242, 255));
+                        play2.SetColor2(RGBA(0, 78, 120, 255));
+                        play.SetColor2(RGBA(0, 78, 120, 255));
+                        mapedit.SetColor2(RGBA(0, 78, 120, 255));
+                        SendMessage(hwnd, WM_PAINT, 0, 0);
+                    }
+                    else {
+                        play.SetColor2(RGBA(0, 78, 120, 255));
+                        play2.SetColor2(RGBA(0, 78, 120, 255));
+                        mapedit.SetColor2(RGBA(0, 78, 120, 255));
+                        _exitbut.SetColor2(RGBA(0, 78, 120, 255));
+                        SendMessage(hwnd, WM_PAINT, 0, 0);
+                    }
+                }
+                if (menu2) {
+                    if (back.HitTest(cursor, GetWindowPos())) {
+                        back.SetColor2(RGBA(131, 203, 242, 255));
+                        SendMessage(hwnd, WM_PAINT, 0, 0);
+                    }
+                    else if (_1.HitTest(cursor, GetWindowPos())) {
+                        _1.SetColor2(RGBA(131, 203, 242, 255));
+                        SendMessage(hwnd, WM_PAINT, 0, 0);
+                    }
+                    else if (_2.HitTest(cursor, GetWindowPos())) {
+                        _2.SetColor2(RGBA(131, 203, 242, 255));
+                        SendMessage(hwnd, WM_PAINT, 0, 0);
+                    }
+                    else{
+                        _1.SetColor2(RGBA(0, 78, 120, 255));
+                        _2.SetColor2(RGBA(0, 78, 120, 255));
+                        back.SetColor2(RGBA(0, 78, 120, 255));
+                        SendMessage(hwnd, WM_PAINT, 0, 0);
+                    }
                 }
             }break;
             case WM_LBUTTONDOWN:
             {
-                if (menu) {
-                    RECT pos;
+
+                if (menu) { 
                     POINT cursor;
-                    pos.left = 0;
-                    pos.bottom = 0;
-                    pos.right = 0;
-                    pos.top = 0;
                     cursor.x = 0;
                     cursor.y = 0;
 
                     GetCursorPos(&cursor);
-                    GetWindowRect(shared, &pos);
-                    if (cursor.y > pos.top + 440 && cursor.x > pos.left + 400 && cursor.y < pos.bottom + 540 && cursor.x < pos.right + 500) {
-                        SendMessage(hwnd, WM_COMMAND, ID_PLAY,0);
+                    if (play.HitTest(cursor, GetWindowPos())) {
+                        SendMessage(hwnd, WM_COMMAND, ID_PLAY, 0);
                     }
-                    else if (cursor.y > pos.top + 590 && cursor.x > pos.left + 400 && cursor.y < pos.bottom + 690 && cursor.x < pos.right + 500) {
+                    else if (mapedit.HitTest(cursor, GetWindowPos())) {
                         SendMessage(hwnd, WM_COMMAND, ID_MAPEDITOR, 0);
                     }
+                    else if (play2.HitTest(cursor, GetWindowPos())) {
+                        SendMessage(hwnd, WM_COMMAND, ID_MENU2, 0);
+                    }
+                    else if (_exitbut.HitTest(cursor, GetWindowPos())) {
+                        SendMessage(hwnd, WM_DESTROY, 0, 0);
+                    }
+                }
+                else if (menu2) {
+                    POINT cursor;
+                    cursor.x = 0;
+                    cursor.y = 0;
 
+                    GetCursorPos(&cursor);
+                    if (_1.HitTest(cursor, GetWindowPos())) {
+                        SendMessage(hwnd, WM_COMMAND, ID_PLAY2, 1);
+                    }
+                    else if (_2.HitTest(cursor, GetWindowPos())) {
+                        SendMessage(hwnd, WM_COMMAND, ID_PLAY2, 2);
+                    }
+                    else if (back.HitTest(cursor, GetWindowPos())) {
+                        menu2 = false;
+                        menu = true;
+                        SendMessage(hwnd, WM_PAINT, 0, 0);
+                    }
                 }
                 if (!adventure_game) {
                     //po kliknti - pridani
@@ -1579,6 +2521,12 @@ LRESULT CALLBACK DemoApp::WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM
 
                     GetCursorPos(&cursor);
                     GetWindowRect(shared, &pos);
+
+                    if (use_it) {
+                        use_it = false;
+                        cursor.x = _cursor.x;
+                        cursor.y = _cursor.y;
+                    }
                     if (cursor.y > pos.top && cursor.x > pos.left && cursor.y < pos.bottom + 40 && cursor.x < pos.right) {
                         //je v okne
                         cursor.y = cursor.y - pos.top - 40;
@@ -1587,13 +2535,16 @@ LRESULT CALLBACK DemoApp::WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM
                         float _x = cursor.x / 80;
                         int _xx = round(_x);
                         int _yy = round(_y);
+                        if ((mode != 1) && (mode != 2) && (zed[_yy][_xx] == typ_zdi::start_pos)) {
+                            ::startpos = false;
+                        }
                         if (mode == 1) {
                             //zed[_yy][_xx] = typ_zdi::nic__;
                             podlaha[_yy][_xx] = typ_podlahy::trava;
                             SendMessage(hwnd, WM_PAINT, 0, 0);
                         }
                         else if (mode == 2) {
-                            zed[_yy][_xx] = typ_zdi::nic__;
+                            //zed[_yy][_xx] = typ_zdi::nic__;
                             podlaha[_yy][_xx] = typ_podlahy::kamen;
                             SendMessage(hwnd, WM_PAINT, 0, 0);
                         }
@@ -1678,12 +2629,102 @@ LRESULT CALLBACK DemoApp::WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM
                             predmety[_yy][_xx] = typ_predmetu::nic_;
                             SendMessage(hwnd, WM_PAINT, 0, 0);
                         }
+                        else if (mode == 19) {
+                            if (!::startpos) {
+                                ::startpos = true;
+                                zed[_yy][_xx] = typ_zdi::start_pos;
+                                predmety[_yy][_xx] = typ_predmetu::nic_;
+                                SendMessage(hwnd, WM_PAINT, 0, 0);
+                            }
+                            else {
+                                COORD i = find_startpos();
+                                zed[i.Y][i.X] = typ_zdi::nic__;
+                                ::startpos = true;
+                                zed[_yy][_xx] = typ_zdi::start_pos;
+                                SendMessage(hwnd, WM_PAINT, 0, 0);
+                            }
+                        }
                     }
                 }
             }break;
             case WM_KEYDOWN:
             {
+                if (menu) {
+                    if (GetAsyncKeyState(0x74) & 0x8000) {
+                        //f5 pressed
+                        if (exist_read_file("map.txt")) {
+                            remove("map.txt");
+                        }
+                        if (GetMapFromServer("map.txt")) {
+                            MessageBox(NULL, L"map.txt succefully downloaded from server", L"Info", MB_OK);
+                        }
+                        else {
+                            MessageBox(NULL, L"map.txt do not downloaded from server - some error occured", L"Error", MB_OK);
+                        }
+                    }
+                    else if (GetAsyncKeyState(0x76) & 0x8000) {
+                        //f7
+                        if (darkmode) {
+                            darkmode = false;
+                            SendMessage(hwnd, WM_PAINT, 0, 0);
+                        }
+                        else {
+                            darkmode = true;
+                            SendMessage(hwnd, WM_PAINT, 0, 0);
+                        }
+                    }
+                    else if (GetAsyncKeyState(0x77) & 0x8000) {
+                        CreateManagerWindow();
+                    }
+                    else if (GetAsyncKeyState(0x75) & 0x8000) {
+                        //f6
+                        OPENFILENAMEA ofn;
+                        char fileName[MAX_PATH] = "";
+                        ZeroMemory(&ofn, sizeof(ofn));
+                        ofn.lStructSize = sizeof(OPENFILENAME);
+                        ofn.hwndOwner = shared;
+                        ofn.lpstrFilter = "Map files(*.txt)\0*.txt";
+                        ofn.lpstrFile = fileName;
+                        ofn.nMaxFile = MAX_PATH;
+                        ofn.Flags = OFN_EXPLORER | OFN_FILEMUSTEXIST | OFN_HIDEREADONLY;
+                        ofn.lpstrDefExt = "";
+
+                        string fileNameStr;
+                        if (GetOpenFileNameA(&ofn)) {
+                            fileNameStr = fileName;
+                            fileNameStr = ofn.lpstrFile;
+
+                        }
+                        if (fileNameStr != "") {
+                            string mapname = fileNameStr;
+                            mapname = base_name(mapname);
+                            if (UploadMapToServer(mapname)) {
+                                MessageBox(NULL, L"map succefully uploaded to server", L"Info", MB_OK);
+                            }
+                            else {
+                                MessageBox(NULL, L"map do not uploaded to server - some error occured", L"Error", MB_OK);
+                            }
+                        }
+                    }
+                }
+                else if (menu2) {
+                    if (GetAsyncKeyState(0x1B) & 0x8000) {
+                        //esc end
+                        menu2 = false;
+                        menu = true;
+                        ::startpos = false;
+                        SendMessage(hwnd, WM_PAINT, 0, 0);
+                    }
+                }
                 if (adventure_game) {
+                    if (GetAsyncKeyState(0x1B) & 0x8000) {
+                        //esc end
+                        menu2 = false;
+                        menu = true;
+                        adventure_game = false;
+                        ::startpos = false;
+                        SendMessage(hwnd, WM_PAINT, 0, 0);
+                    }
                     if (GetAsyncKeyState(0x70) & 0x8000) {
                         //key f1
                         std::wstring _1 = L"x: " + std::to_wstring(x) + L" y: " + std::to_wstring(y);
@@ -1769,6 +2810,12 @@ LRESULT CALLBACK DemoApp::WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM
                     }
                 }
                 else {
+                    if (GetAsyncKeyState(0x1B) & 0x8000) {
+                        //esc end
+                        menu2 = false;
+                        menu = true;
+                        SendMessage(hwnd, WM_PAINT, 0, 0);
+                    }
                     if (GetAsyncKeyState(0x54) & 0x8000) {
                         //t pressed - pridani travy
                         mode = 1;
@@ -1787,11 +2834,11 @@ LRESULT CALLBACK DemoApp::WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM
                     }
                     else  if (GetAsyncKeyState(0x4D) & 0x8000) {
                         //m pressed - pridani modreho krystalu
-                        mode = 5;
+                        mode = 6;
                     }
                     else  if (GetAsyncKeyState(0x43) & 0x8000) {
                         //c pressed - pridani cerveneho krystalu
-                        mode = 6;
+                        mode = 5;
                     }
                     else  if (GetAsyncKeyState(0x51) & 0x8000) {
                         //q pressed - smazani krystalu
@@ -1867,13 +2914,17 @@ LRESULT CALLBACK DemoApp::WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM
                         if (GetSaveFileNameA(&ofn2))
                             fileNameStr = fileName;
                         if (fileNameStr != "") {
-                            if(!JdeSebratVsechnyPredmety()){
-                                MessageBox(NULL, L"Všechny pøedmety z mapy nelze sebrat.", L"Varování", MB_OK | MB_ICONASTERISK);
-                            }
                             ofstream out(fileNameStr.c_str());
                             //width, height, posx,posy, zdi, podlaha
                             out << 10 << " " << 17 << endl;//velikost
-                            out << 2 << " " << 2 << endl;//startpos
+
+                            COORD i = find_startpos();//startpos
+                            if ((i.X != -1) && (i.Y != -1)) {
+                                out << i.X << " " << i.Y << endl;
+                            }
+                            else {
+                                out << 2 << " " << 2 << endl;
+                            }
                             for (int _y = 0; _y < 10; _y++) {
                                 for (int _x = 0; _x < 17; _x++) {
                                     out << zed[_y][_x] << " ";
@@ -1931,34 +2982,167 @@ LRESULT CALLBACK DemoApp::WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM
             }break;
             case WM_COMMAND:
             {
+                POINT cursor;
+                cursor.x = 0;
+                cursor.y = 0;
+                GetCursorPos(&cursor);
                 int i = LOWORD(wParam);
                 switch (i) {
                 case ID_PLAY:
                 {
+                    ShowWindow(shared, SW_MAXIMIZE);
                     adventure_game = true;
                     menu = false;
-                    LoadFile("lets_go.txt");
+                    //LoadFile("lets_go.txt");
+                    if (!loaded) {
+                        LoadFile("lets_go.txt");
+                    }
+                    SetWindowTextA(hwnd, "Adventure Game - Fun Play");
+                    SendMessage(hwnd, WM_PAINT, 0, 0);
+                }break;
+
+                case ID_PLAY2:
+                {
+                    ShowWindow(shared, SW_MAXIMIZE);
+                    adventure_game = true;
+                    menu = false;
+                    menu2 = false;
+                    LoadLevel(LOWORD(lParam));
+                    SetWindowTextA(hwnd, "Adventure Game - Play");
+                    SendMessage(hwnd, WM_PAINT, 0, 0);
+                }break;
+                case ID_MENU2:
+                {
+                    //                     ShowWindow(shared, SW_MAXIMIZE);
+                    adventure_game = true;
+                    menu = false;
+                    menu2 = true;
                     SendMessage(hwnd, WM_PAINT, 0, 0);
                 }break;
                 case ID_MAPEDITOR:
                 {
-                    IntInfo(365);
+                    ShowWindow(shared, SW_MAXIMIZE);
                     adventure_game = false;
                     menu = false;
-                    LoadFile("lets_go.txt");
+                        LoadFile("lets_go.txt");
+                    SetWindowTextA(hwnd, "Adventure Game - Map Editor");
                     SendMessage(hwnd, WM_PAINT, 0, 0);
                 }break;
                 case ID_SETTRAVA:
                 {
                     mode = 1;
+                    use_it = true;
                     SendMessage(hwnd, WM_LBUTTONDOWN, 0, 0);
                 }break;
                 case ID_SETKAMEN:
                 {
-                    mode = 4;
+                    mode = 2;
+                    use_it = true;
                     SendMessage(hwnd, WM_LBUTTONDOWN, 0, 0);
                 }break;
-                }
+                case ID_SETZED:
+                {
+                    mode = 4;
+                    use_it = true;
+                    SendMessage(hwnd, WM_LBUTTONDOWN, 0, 0);
+                }break;
+                case ID_SETZEDO:
+                {
+                    mode = 11;
+                    use_it = true;
+                    SendMessage(hwnd, WM_LBUTTONDOWN, 0, 0);
+                }break;
+                case ID_SETBEDNA:
+                {
+                    mode = 18;
+                    use_it = true;
+                    SendMessage(hwnd, WM_LBUTTONDOWN, 0, 0);
+                }break;
+                case ID_SMAZANI:
+                {
+                    mode = 3;
+                    use_it = true;
+                    SendMessage(hwnd, WM_LBUTTONDOWN, 0, 0);
+                }break;
+                case ID_SMAZANI_P:
+                {
+                    mode = 7;
+                    use_it = true;
+                    SendMessage(hwnd, WM_LBUTTONDOWN, 0, 0);
+                }break;
+                case ID_SETPENIZ:
+                {
+                    mode = 17;
+                    use_it = true;
+                    SendMessage(hwnd, WM_LBUTTONDOWN, 0, 0);
+                }break;
+                case ID_SETCKRYSTAL:
+                {
+                    mode = 5;
+                    use_it = true;
+                    SendMessage(hwnd, WM_LBUTTONDOWN, 0, 0);
+                }break;
+                case ID_SETMKRYSTAL:
+                {
+                    mode = 6;
+                    use_it = true;
+                    SendMessage(hwnd, WM_LBUTTONDOWN, 0, 0);
+                }break;
+                case ID_SETOKRYSTAL:
+                {
+                    mode = 9;
+                    use_it = true;
+                    SendMessage(hwnd, WM_LBUTTONDOWN, 0, 0);
+                }break;
+                case ID_SETZLKRYSTAL:
+                {
+                    mode = 10;
+                    use_it = true;
+                    SendMessage(hwnd, WM_LBUTTONDOWN, 0, 0);
+                }break;
+                case ID_SETZKRYSTAL:
+                {
+                    mode = 8;
+                    use_it = true;
+                    SendMessage(hwnd, WM_LBUTTONDOWN, 0, 0);
+                }break;
+                case ID_SETCORB:
+                {
+                    mode = 13;
+                    use_it = true;
+                    SendMessage(hwnd, WM_LBUTTONDOWN, 0, 0);
+                }break;
+                case ID_SETMORB:
+                {
+                    mode = 12;
+                    use_it = true;
+                    SendMessage(hwnd, WM_LBUTTONDOWN, 0, 0);
+                }break;
+                case ID_SETOORB:
+                {
+                    mode = 14;
+                    use_it = true;
+                    SendMessage(hwnd, WM_LBUTTONDOWN, 0, 0);
+                }break;
+                case ID_SETZLORB:
+                {
+                    mode = 15;
+                    use_it = true;
+                    SendMessage(hwnd, WM_LBUTTONDOWN, 0, 0);
+                }break;
+                case ID_SETZORB:
+                {
+                    mode = 16;
+                    use_it = true;
+                    SendMessage(hwnd, WM_LBUTTONDOWN, 0, 0);
+                }break;
+                case ID_SETSTART:
+                {
+                    mode = 19;
+                    use_it = true;
+                    SendMessage(hwnd, WM_LBUTTONDOWN, 0, 0);
+                }break;
+                };
             }break;
             case WM_DISPLAYCHANGE:
             {
@@ -1971,7 +3155,7 @@ LRESULT CALLBACK DemoApp::WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM
             case WM_PAINT:
             {
                
-                pDemoApp->OnRender();
+                pAdentureGame->OnRender();
                 ValidateRect(hwnd, NULL);
             }
             result = 0;
@@ -1998,7 +3182,7 @@ LRESULT CALLBACK DemoApp::WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM
 }
 
 
-HRESULT DemoApp::OnRender()
+HRESULT AdentureGame::OnRender()
 {
     HRESULT hr = S_OK;
 
@@ -2006,22 +3190,24 @@ HRESULT DemoApp::OnRender()
     if (SUCCEEDED(hr))
     {
         m_pRenderTarget->BeginDraw();
-
         m_pRenderTarget->SetTransform(D2D1::Matrix3x2F::Identity());
+        if (darkmode) {
+            m_pRenderTarget->Clear(D2D1::ColorF(D2D1::ColorF::Black));
+        }
+        else {
+            m_pRenderTarget->Clear(D2D1::ColorF(D2D1::ColorF::White));
+        }
 
-        m_pRenderTarget->Clear(D2D1::ColorF(D2D1::ColorF::White));
         D2D1_SIZE_F rtSize = m_pRenderTarget->GetSize();
         // Draw a grid background.
         int width = static_cast<int>(rtSize.width);
         int height = static_cast<int>(rtSize.height);
-
-        //pocet zobrazenych ctvercu - pro vetsi rychlost
-        /*
-        int zobraz_sirka = round(width / 80)+1;
-        int zobraz_vyska = round(height / 80)+1;
-        */
-
+        
 #ifdef POSOUVANI_KAMERY
+        //pocet zobrazenych ctvercu - pro vetsi rychlost
+        int zobraz_sirka = round(width / 80) + 1;
+        int zobraz_vyska = round(height / 80) + 1;
+
         int hrac_x = round(((width - 80) / 2) / 80) * 80;
         int hrac_y = round(((height - 80) / 2) / 80) * 80;
 
@@ -2063,31 +3249,57 @@ HRESULT DemoApp::OnRender()
         D2D1_RECT_F postava_pos = SRect(hrac_x, hrac_y, hrac_x + 80, hrac_y + 80);
 #else
         if(menu){
-            m_pRenderTarget->DrawText(
-                L"Adventure Game",
-                15,
-                m_pTextFormat,
-                D2D1::RectF(0, 0, 500, 200),
-                m_pCornflowerBlueBrush
-            );
-            m_pRenderTarget->FillRectangle(SRect(400, 400, 500, 500), m_pCornflowerBlueBrush);
-            m_pRenderTarget->FillRectangle(SRect(400, 550, 500, 650), m_pCornflowerBlueBrush);
-            m_pRenderTarget->DrawText(
-                L"Play",
-                4,
-                mini_text,
-                D2D1::RectF(400, 400, 500, 500),
-                m_pBrush1
-            );
-            m_pRenderTarget->DrawText(
-                L"Map editor",
-                10,
-                mini_text,
-                D2D1::RectF(400, 550, 500, 650),
-                m_pBrush1
-            );
+
+            play2.SetPos(SRect2(((width - 150) / 2), ((height - 100) / 2)-50, 150, 100));
+            play.SetPos(SRect2(((width - 150) / 2), ((height - 100) / 2)+75, 150, 100));
+            mapedit.SetPos(SRect2(((width - 150) / 2), ((height - 100) / 2)+200, 150, 100));
+            sometext.SetPos(SRect2(((width - 600) / 2), ((height - 200) / 2) - 200, 600, 200));
+            _exitbut.SetPos(SRect2(((width - 150) / 2) + 250, ((height - 100) / 2) + 200, 150, 100));
+
+            mapedit.Draw();
+            play.Draw();
+            sometext.Draw();
+            play2.Draw();
+            _exitbut.Draw();
+        }
+        else if (menu2) {
+            choose.SetPos(SRect2(((width - 600) / 2), ((height - 200) / 2) - 200, 600, 200));
+            _1.SetPos(SRect2(((width - 150) / 2), ((height - 100) / 2) - 50, 150, 100));
+            _2.SetPos(SRect2(((width - 150) / 2), ((height - 100) / 2) + 75, 150, 100));
+
+            back.SetPos(SRect2(((width - 150) / 2)-200, ((height - 100) / 2) + 150, 150, 100));
+
+            choose.Draw();
+            _1.Draw();
+            _2.Draw();
+            back.Draw();
         }
         else {
+            // Dark mode :
+            if (!adventure_game) {
+                if (darkmode) {
+                    D2D1_SIZE_F rtSize = m_pRenderTarget->GetSize();
+                    for (int x = 0; x < width; x += 80)
+                    {
+                        m_pRenderTarget->DrawLine(
+                            D2D1::Point2F(static_cast<FLOAT>(x), 0.0f),
+                            D2D1::Point2F(static_cast<FLOAT>(x), rtSize.height),
+                            white,
+                            0.5f
+                        );
+                    }
+
+                    for (int y = 0; y < height; y += 80)
+                    {
+                        m_pRenderTarget->DrawLine(
+                            D2D1::Point2F(0.0f, static_cast<FLOAT>(y)),
+                            D2D1::Point2F(rtSize.width, static_cast<FLOAT>(y)),
+                            white,
+                            0.5f
+                        );
+                    }
+                }
+            }
             for (int _x = 0; _x < 17; _x++) {
                 for (int _y = 0; _y < 10; _y++) {
 
@@ -2098,7 +3310,7 @@ HRESULT DemoApp::OnRender()
                         m_pRenderTarget->DrawBitmap(podlaha_kamen, SRect(_x * 80, _y * 80, (_x * 80) + 80, (_y * 80) + 80), 1.0, D2D1_BITMAP_INTERPOLATION_MODE_LINEAR);
                     }
 
-                    //musi byt zvlast jinak by tam bylo bilo - nema pozadi obrazek
+                    //musi byt zvlast jinak by tam bylo na sobe - nema pozadi obrazek
                     if (zed[_y][_x] == typ_zdi::kamen_o) {
                         m_pRenderTarget->DrawBitmap(kamen2, SRect(_x * 80, _y * 80, (_x * 80) + 80, (_y * 80) + 80), 1.0, D2D1_BITMAP_INTERPOLATION_MODE_LINEAR);
                     }
@@ -2107,6 +3319,11 @@ HRESULT DemoApp::OnRender()
                     }
                     else if (zed[_y][_x] == typ_zdi::bedna) {
                         m_pRenderTarget->DrawBitmap(bedna, SRect(_x * 80, _y * 80, (_x * 80) + 80, (_y * 80) + 80), 1.0, D2D1_BITMAP_INTERPOLATION_MODE_LINEAR);
+                    }
+                    if (adventure_game == false) {
+                        if (zed[_y][_x] == typ_zdi::start_pos) {
+                            m_pRenderTarget->DrawBitmap(startpos, SRect(_x * 80, _y * 80, (_x * 80) + 80, (_y * 80) + 80), 1.0, D2D1_BITMAP_INTERPOLATION_MODE_LINEAR);
+                        }
                     }
 
                     if (predmety[_y][_x] == typ_predmetu::krystal_m) {
@@ -2147,8 +3364,6 @@ HRESULT DemoApp::OnRender()
 
             D2D1_RECT_F postava_pos = D2D1::RectF(x * 80, y * 80, (x * 80) + 80, (y * 80) + 80);
 #endif
-
-
             if (adventure_game) {
                 if (mom_postava == 1) {
                     m_pRenderTarget->DrawBitmap(pos1, postava_pos, 1.0);
@@ -2164,9 +3379,6 @@ HRESULT DemoApp::OnRender()
                 }
             }
         }
-        /* m_pRenderTarget->DrawBitmap(postava, postava_pos, 1.0, D2D1_BITMAP_INTERPOLATION_MODE_LINEAR);
-         */
-
         hr = m_pRenderTarget->EndDraw();
     }
     if (hr == D2DERR_RECREATE_TARGET)
@@ -2177,13 +3389,10 @@ HRESULT DemoApp::OnRender()
     return hr;
 }
 
-void DemoApp::OnResize(UINT width, UINT height)
+void AdentureGame::OnResize(UINT width, UINT height)
 {
     if (m_pRenderTarget)
     {
-        // Note: This method can fail, but it's okay to ignore the
-        // error here, because the error will be returned again
-        // the next time EndDraw is called.
         m_pRenderTarget->Resize(D2D1::SizeU(width, height));
     }
 }
