@@ -9,8 +9,9 @@
 // Icon
 //
 
-IDI_ICON               ICON                    "img/icon/icon.ico"
+IDI_ICON                ICON                    "img/icon/icon.ico"
 IDI_SMALL               ICON                    "img/icon/small.ico"
+IDI_MAPMAKER            ICON                    "img/icon/mapmaker.ico"
 
 
 /////////////////////////////////////////////////////////////////////////////
@@ -54,6 +55,17 @@ CIHLAZED             IMAGE                    "img/zed_cihla.png"
 // Dialog
 //
 
+IDD_DOWNMAP DIALOGEX 200, 200, 209, 125
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Download a map"
+FONT 8, "MS Shell Dlg", 0, 0, 0x1
+BEGIN
+DEFPUSHBUTTON   "Download", ID_DOWN, 139, 111, 50, 14, WS_GROUP
+PUSHBUTTON      "Cancel", ID_CANCEL, 91, 111, 50, 14
+LTEXT           "Enter full map name to download:", IDC_STATIC, 23, 20, 135, 8
+EDITTEXT        IDE_EDIT1, 23, 35, 123, 14
+END
+
 IDD_EDITCHOOSE DIALOGEX 0, 0, 189, 125
 STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "Edit choose"
@@ -79,6 +91,12 @@ IDD_EDITCHOOSE, DIALOG
 BEGIN
 RIGHTMARGIN, 175
 BOTTOMMARGIN, 97
+END
+
+IDD_DOWNMAP, DIALOG
+BEGIN
+RIGHTMARGIN, 206
+BOTTOMMARGIN, 85
 END
 END
 #endif    // APSTUDIO_INVOKED
@@ -120,4 +138,3 @@ END
 
 /////////////////////////////////////////////////////////////////////////////
 #endif    // not APSTUDIO_INVOKED
-

@@ -98,5 +98,6 @@
     <Image Include="img\startpos.png">
       <Filter>design\img</Filter>
     </Image>
+    <Image Include="img\zed_cihla.png" />
   </ItemGroup>
 </Project>

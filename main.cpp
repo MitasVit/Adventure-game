@@ -27,12 +27,20 @@
 #include <vector>
 #include <sstream>
 #include <algorithm>
+#include <iostream>
+#include <locale>
+#include <codecvt>
 
 #include <shellapi.h>
 #include <atlstr.h>
 #include <CommCtrl.h>
 #include <commdlg.h>
 #include <Shlwapi.h>
+
+#include <rapidjson/document.h>
+#include <rapidjson/writer.h>
+#include <rapidjson/stringbuffer.h>
+#include <rapidjson/error/error.h>
 
 #pragma comment(lib, "shlwapi.lib")
 #pragma comment(lib, "comctl32.lib")
@@ -46,6 +54,7 @@
 #include "Resource.h"
 
 using namespace std;
+using namespace rapidjson;
 
 template<class Interface>
 inline void SafeRelease(
@@ -128,8 +137,9 @@ enum typ_predmetu {
     nic_ = 3
 };
 
+
 //y,x
-typ_zdi zed[10][17] = { {nic__, nic__, nic__, nic__, nic__, nic__, nic__,nic__, nic__,nic__,nic__,nic__,nic__,nic__,nic__,nic__,nic__},
+typ_zdi zed[10][17] = {{nic__, nic__, nic__, nic__, nic__, nic__, nic__,nic__, nic__,nic__,nic__,nic__,nic__,nic__,nic__,nic__,nic__},
 {nic__, nic__, nic__, nic__, nic__, nic__, nic__,nic__, nic__,nic__,nic__,nic__,nic__,nic__,nic__,nic__,nic__},
 {nic__, nic__, nic__, nic__, nic__, nic__, nic__,nic__, nic__,nic__,nic__,nic__,nic__,nic__,nic__,nic__,nic__},
 {nic__, nic__, nic__, nic__, nic__, nic__, nic__,nic__, nic__,nic__,nic__,nic__,nic__,nic__,nic__,nic__,nic__},
@@ -485,6 +495,7 @@ int Upload(string mapname, string content) {
     ss << "\r\n";
     ss << "\r\n";
     sendBuf = ss.str();
+    //mBox(sendBuf,"sendBuf", MB_OK);
     int response = send(con, (char*)sendBuf.c_str(), sendBuf.length(), 0);
     if (response == SOCKET_ERROR) {
         if (con == INVALID_SOCKET) {
@@ -514,7 +525,7 @@ BOOL GetMapFromServer(string mapname) {
     mapname = StringToHttpRequest(mapname);
     WSADATA wsaData;
     const int bufLen = 1024;
-    string url = "https://paternremembergame.tode.cz/test.php?file=" + mapname;
+    string url = "https://paternremembergame.tode.cz/test.php?file=maps/" + mapname;
     char* szUrl = &url[0];
     long fileSize=0;
     char* memBuffer, * headerBuffer;
@@ -602,6 +613,11 @@ INT_PTR CALLBACK EditChoose(HWND hDlg, UINT message, WPARAM wParam, LPARAM lPara
     {
         combo = CreateChoose(hDlg);
         check = GetDlgItem(hDlg, IDC_CHECK1);
+        return (INT_PTR)TRUE;
+    }break;
+    case WM_DESTROY:
+    {
+        EndDialog(hDlg, LOWORD(wParam));
         return (INT_PTR)TRUE;
     }break;
     case WM_COMMAND:
@@ -714,6 +730,104 @@ COORD find_startpos() {
     return coord(-1,-1);
 }
 
+
+#define RAPIDJSON_ASSERT 0
+
+//FUNKCE: LoadMap()
+// filename - nazev .json souboru s mapou
+// return true -> v pohode
+int LoadMap(string filename, bool print_errors = false) {
+    if ((filename == "") || (filename == " ")) {
+        return 1;//empty string
+    }
+    if (!exist_read_file(filename.c_str())) {
+        return 2;//not exist, not have rights/cant read
+    }
+    Document doc;
+    ParseResult re = doc.Parse(LoadFileToString(filename.c_str()).c_str());
+    if (re.IsError()) {
+        if (print_errors) {
+            cout << "parse error - result" << endl;
+            cout << GetParseErrorFunc(re.Code()) << " ofset: " << re.Offset() << endl;
+        }
+        return 3;
+    }
+    if (doc.HasParseError()) {
+        cout << "parse error" << endl;
+        return 4;
+    }
+
+    if ((!doc["info"]["start pos"]["y"].IsInt()) || (!doc["info"]["start pos"]["x"].IsInt())) {
+        cout << "not int" << endl;
+        return 5;
+    }
+    y = doc["info"]["start pos"]["y"].GetInt();
+    x = doc["info"]["start pos"]["x"].GetInt();
+
+    Value& map = doc["info"]["map"];
+    for (const Value& value : map.GetArray()) {
+        if ((!value["pos"]["x"].IsInt()) || (!value["pos"]["y"].IsInt()) || (!value["iid"].IsInt()) || (!value["fid"].IsInt()) || (!value["wid"].IsInt())) {
+            cout << "not pos y, iid..." << endl;
+            return 6;
+        }
+        int _x = value["pos"]["x"].GetInt();
+        int _y = value["pos"]["y"].GetInt();
+        int iid, wid, fid;
+        iid = value["iid"].GetInt();
+        fid = value["fid"].GetInt();
+        wid = value["wid"].GetInt();
+        zed[_y][_x] = (typ_zdi)wid;
+        predmety[_y][_x] = (typ_predmetu)iid;
+        podlaha[_y][_x] = (typ_podlahy)fid;
+    }
+    return 0;
+}
+
+void SaveMap(string filename, int startposx, int startposy) {
+    Document doc;
+    doc.SetObject();
+    Document::AllocatorType& allocator = doc.GetAllocator();
+
+    //string auth(getenv("USERNAME"));
+    Value info(kObjectType), startpos(kObjectType), mapsize(kObjectType);
+    Value array(kArrayType);
+
+    mapsize.AddMember("height", 10, allocator);
+    mapsize.AddMember("width", 17, allocator);
+
+    startpos.AddMember("x", startposx, allocator);
+    startpos.AddMember("y", startposy, allocator);
+
+    for (int _x = 0; _x < 17; _x++) {
+        for (int _y = 0; _y < 10; _y++) {
+            Value ar(kObjectType);
+            Value pos(kObjectType);
+            pos.AddMember("x", _x, allocator);
+            pos.AddMember("y", _y, allocator);
+            ar.AddMember("pos", pos, allocator);
+            ar.AddMember("iid", (int)predmety[_y][_x], allocator);
+            ar.AddMember("wid", (int)zed[_y][_x], allocator);
+            ar.AddMember("fid", (int)podlaha[_y][_x], allocator);
+            array.PushBack(ar, allocator);
+        }
+    }
+
+    info.AddMember("author", "Username", allocator);
+    info.AddMember("mapsize", mapsize, allocator);
+    info.AddMember("start pos", startpos, allocator);
+    info.AddMember("map", array, allocator);
+
+    doc.AddMember("info", info, allocator);
+
+    //safe to file
+    StringBuffer buffer;
+    Writer<StringBuffer> writer(buffer);
+    doc.Accept(writer);
+    ofstream out(filename.c_str());
+    out << buffer.GetString();
+    out.close();
+}
+
 //true v poradku jinak false
 bool LoadFile(string open_file_name) {
     int startposx, startposy, width, height;
@@ -816,10 +930,14 @@ bool LoadFile(string open_file_name) {
 
 void LoadLevel(int level) {
     if (level == 1) {
-        LoadFile("lets_go.txt");
+        if (LoadMap("lets_go.json") > 0) {
+            mBox("Cant open level", "error", MB_OK | MB_ICONERROR);
+        }
     }
     else if (level == 2) {
-        LoadFile("lets_go.txt");
+        if (LoadMap("lets_go.json") > 0) {
+            mBox("Cant open level", "error", MB_OK | MB_ICONERROR);
+        }
     }
 }
 
@@ -972,6 +1090,74 @@ public:
         text = L"";
     }
 };
+class BitmapButton {
+public:
+    D2D1_RECT_F pos;
+    ID2D1HwndRenderTarget* target;
+    ID2D1Bitmap* bitmap;
+
+    BitmapButton() {
+        pos = { 0,0,0,0 };
+        target = NULL;
+        bitmap = NULL;
+    }
+    ~BitmapButton() {
+        pos = { 0,0,0,0 };
+        target = NULL;
+        bitmap = NULL;
+    }
+    BitmapButton(BitmapButton& src) {
+        pos = src.pos;
+        target = src.target;
+        bitmap = src.bitmap;
+    }
+    BitmapButton(D2D1_RECT_F _pos, ID2D1HwndRenderTarget* _target, ID2D1Bitmap* _bitmap) {
+        pos = _pos;
+        target = _target;
+        bitmap = _bitmap;
+    }
+    float GetWidth() {
+        return (pos.right - pos.left);
+    }
+    float GetHeight() {
+        return (pos.bottom - pos.top);
+    }
+    void CreatePos(float x, float y, float width, float height) {
+        pos.left = x;
+        pos.top = y;
+        pos.bottom = y + height;
+        pos.right = x + width;
+    }
+    void SetTarget(ID2D1HwndRenderTarget* _target) {
+        target = _target;
+    }
+    void SetBitmap(ID2D1Bitmap* _bitmap) {
+        bitmap = _bitmap;
+    }
+    void SetPos(D2D1_RECT_F _pos) {
+        pos = _pos;
+    }
+    bool HitTest(POINT cursorpos, RECT winpos) {
+        if ((cursorpos.y > (winpos.top + pos.top + 29)) && (cursorpos.x > (winpos.left + pos.left)) && (cursorpos.y < (winpos.top + 29 + pos.bottom)) && (cursorpos.x < (winpos.left + pos.right))) {
+            return true;
+        }
+        return false;
+    }
+    void Draw() {
+        target->DrawBitmap(bitmap, pos, 1.0);
+    }
+    bool Erorr() {
+        if (target == NULL  || bitmap == NULL || (pos.left == 0 && pos.right == 0 && pos.bottom == 0 && pos.top == 0)) {
+            return true;
+        }
+        return false;
+    }
+    void Release() {
+        pos = { 0,0,0,0 };
+        target = NULL;
+        bitmap = NULL;
+    }
+};
 class Text {
 public:
     D2D1_RECT_F pos;
@@ -1086,7 +1272,7 @@ public:
     }
 };
 
-Button play, mapedit, play2, back, _1, _2, _exitbut;
+Button play, mapedit, play2, back, _1, _2, _exitbut, _upload, _download;
 Text sometext, choose;
 
 class AdentureGame
@@ -1150,7 +1336,7 @@ private:
     HWND m_hwnd;
     ID2D1Factory* m_pDirect2dFactory;
     ID2D1HwndRenderTarget* m_pRenderTarget;
-    ID2D1SolidColorBrush* m_pMyBrush, * m_pMyBrush2, *m_pMyBrush3, * m_pMyBrush4,* m_pMyBrush5, *m_pMyBrush6,* m_pMyBrush7;
+    ID2D1SolidColorBrush* m_pMyBrush, * m_pMyBrush2, *m_pMyBrush3, * m_pMyBrush4,* m_pMyBrush5, *m_pMyBrush6,* m_pMyBrush7, * m_pMyBrush8, * m_pMyBrush9;
     ID2D1SolidColorBrush* m_pCornflowerBlueBrush;
     IWICImagingFactory* m_pWICFactory;
     ID2D1SolidColorBrush* m_pBrush1, * white;
@@ -1205,6 +1391,8 @@ AdentureGame::AdentureGame() :
     m_pMyBrush5(NULL),
     m_pMyBrush6(NULL),
     m_pMyBrush7(NULL),
+    m_pMyBrush8(NULL),
+    m_pMyBrush9(NULL),
     startpos(NULL),
     white(NULL),
     cihlazed(NULL)
@@ -1251,6 +1439,8 @@ AdentureGame::~AdentureGame()
     SafeRelease(&m_pMyBrush5);
     SafeRelease(&m_pMyBrush6);
     SafeRelease(&m_pMyBrush7);
+    SafeRelease(&m_pMyBrush8);
+    SafeRelease(&m_pMyBrush9);
     SafeRelease(&startpos);
     SafeRelease(&white);
     SafeRelease(&cihlazed);
@@ -1573,8 +1763,6 @@ HRESULT AdentureGame::Initialize()
         dpiX = (FLOAT)GetDpiForWindow(GetDesktopWindow());
         dpiY = dpiX;
 
-
-
         // Create the window.
         m_hwnd = CreateWindow(
             L"D2DAdentureGame",
@@ -1646,6 +1834,98 @@ HRESULT CreateManagerWindow() {
         UpdateWindow(manager);
     }
     return hr;
+}
+string TCHAR260ToStr(TCHAR str[20]) {
+    wstring tmp(str);
+    using convert_type = std::codecvt_utf8<wchar_t>;
+    std::wstring_convert<convert_type, wchar_t> converter;
+    std::string converted_str = converter.to_bytes(tmp);
+    return converted_str;
+}
+
+
+INT_PTR CALLBACK DownloadProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
+{
+    UNREFERENCED_PARAMETER(lParam);
+    switch (message) {
+    case WM_INITDIALOG:
+    {
+        return (INT_PTR)TRUE;
+    }
+    case WM_DESTROY:
+    {
+        EndDialog(hDlg, LOWORD(wParam));
+        return (INT_PTR)TRUE;
+    }break;
+    case WM_COMMAND:
+    {
+        if (LOWORD(wParam) == ID_CANCEL)
+        {
+            EndDialog(hDlg, LOWORD(wParam));
+            return (INT_PTR)TRUE;
+        }
+        else if (LOWORD(wParam) == ID_DOWN) {
+            TCHAR mapname[20];
+            WORD ccMapname;
+            ccMapname = (WORD)SendDlgItemMessage(hDlg,
+                IDE_EDIT1,
+                EM_LINELENGTH,
+                (WPARAM)0,
+                (LPARAM)0);
+
+            if (ccMapname >= 261)
+            {
+                MessageBox(hDlg,
+                    L"Too many characters.",
+                    L"Error",
+                    MB_OK | MB_ICONERROR);
+
+                EndDialog(hDlg, TRUE);
+                return FALSE;
+            }
+            else if (ccMapname == 0)
+            {
+                MessageBox(hDlg,
+                    L"No characters entered.",
+                    L"Error",
+                    MB_OK | MB_ICONERROR);
+
+                EndDialog(hDlg, TRUE);
+                return FALSE;
+            }
+
+            // Put the number of characters into first word of buffer. 
+            *((LPWORD)mapname) = ccMapname;
+
+            // Get the characters. 
+            SendDlgItemMessage(hDlg,
+                IDE_EDIT1,
+                EM_GETLINE,
+                (WPARAM)0,       // line 0 
+                (LPARAM)mapname);
+
+            // Null-terminate the string. 
+            mapname[ccMapname] = 0;
+
+            // Call a local password-parsing function. 
+            string fullname = TCHAR260ToStr(mapname);
+            if (exist_read_file(fullname)) {
+                mBox("Some map has same name as map name, which you want to download", "Warning", MB_OK | MB_ICONASTERISK);
+            }
+            if (GetMapFromServer(fullname)) {
+                mBox(fullname + " is downloaded from server", "Info", MB_OK);
+            }
+            else {
+                mBox(fullname + " do not downloaded from server", "Info", MB_OK);
+            }
+            EndDialog(hDlg, LOWORD(wParam));
+            return (INT_PTR)TRUE;
+        }
+        break;
+    }
+    break;
+    }
+    return (INT_PTR)FALSE;
 }
 
 LRESULT CALLBACK ManagerProc(HWND hWnd,UINT message,WPARAM wParam,LPARAM lParam) {
@@ -1881,6 +2161,22 @@ HRESULT AdentureGame::CreateDeviceResources()
                 // D2D1::ColorF(D2D1::ColorF::ColorF(0.26f, 0.49f, 0.94f, 1.0f)),
                 RGBA(0, 78, 120, 255),
                 &m_pMyBrush7
+            );
+        }
+        if (SUCCEEDED(hr))
+        {
+            hr = m_pRenderTarget->CreateSolidColorBrush(
+                // D2D1::ColorF(D2D1::ColorF::ColorF(0.26f, 0.49f, 0.94f, 1.0f)),
+                RGBA(0, 78, 120, 255),
+                &m_pMyBrush8
+            );
+        }
+        if (SUCCEEDED(hr))
+        {
+            hr = m_pRenderTarget->CreateSolidColorBrush(
+                // D2D1::ColorF(D2D1::ColorF::ColorF(0.26f, 0.49f, 0.94f, 1.0f)),
+                RGBA(0, 78, 120, 255),
+                &m_pMyBrush9
             );
         }
         if (SUCCEEDED(hr))
@@ -2259,6 +2555,20 @@ HRESULT AdentureGame::CreateDeviceResources()
         _exitbut.SetPos(SRect2(600, 400, 200, 200));
         _exitbut.CreateFormat(m_pDWriteFactory, L"Century", 30, true);
 
+        _download.SetColor(m_pMyBrush8);
+        _download.SetTarget(m_pRenderTarget);
+        _download.SetColorText(m_pBrush1);
+        _download.SetText(L"Download Map");
+        _download.SetPos(SRect2(600, 400, 200, 100));
+        _download.CreateFormat(m_pDWriteFactory, L"Century", 30, true);
+
+        _upload.SetColor(m_pMyBrush9);
+        _upload.SetTarget(m_pRenderTarget);
+        _upload.SetColorText(m_pBrush1);
+        _upload.SetText(L"Upload Map");
+        _upload.SetPos(SRect2(600, 500, 200, 100));
+        _upload.CreateFormat(m_pDWriteFactory, L"Century", 30, true);
+
     }
 
     return hr;
@@ -2312,7 +2622,7 @@ LRESULT CALLBACK AdentureGame::WndProc(HWND hwnd, UINT message, WPARAM wParam, L
         LocalFree(szArglist);
 
         if (open_file_name != "") {
-            if (!LoadFile(open_file_name)) {
+            if (!LoadMap(open_file_name)) {
                 string mes = open_file_name + " neexistuje nebo nelze otevrit";
                 MessageBoxA(NULL, mes.c_str(), "Error", MB_OK | MB_ICONERROR);
             }
@@ -2416,6 +2726,8 @@ LRESULT CALLBACK AdentureGame::WndProc(HWND hwnd, UINT message, WPARAM wParam, L
                         play2.SetColor2(RGBA(0, 78, 120, 255));
                         mapedit.SetColor2(RGBA(0, 78, 120, 255));
                         _exitbut.SetColor2(RGBA(0, 78, 120, 255));
+                        _upload.SetColor2(RGBA(0, 78, 120, 255));
+                        _download.SetColor2(RGBA(0, 78, 120, 255));
                         SendMessage(hwnd, WM_PAINT, 0, 0);
                     }
                     else if (mapedit.HitTest(cursor, GetWindowPos())) {
@@ -2423,6 +2735,8 @@ LRESULT CALLBACK AdentureGame::WndProc(HWND hwnd, UINT message, WPARAM wParam, L
                         play.SetColor2(RGBA(0, 78, 120, 255));
                         play2.SetColor2(RGBA(0, 78, 120, 255));
                         _exitbut.SetColor2(RGBA(0, 78, 120, 255));
+                        _upload.SetColor2(RGBA(0, 78, 120, 255));
+                        _download.SetColor2(RGBA(0, 78, 120, 255));
                         SendMessage(hwnd, WM_PAINT, 0, 0);
                     }
                     else if (play2.HitTest(cursor, GetWindowPos())) {
@@ -2430,6 +2744,8 @@ LRESULT CALLBACK AdentureGame::WndProc(HWND hwnd, UINT message, WPARAM wParam, L
                         play.SetColor2(RGBA(0, 78, 120, 255));
                         mapedit.SetColor2(RGBA(0, 78, 120, 255));
                         _exitbut.SetColor2(RGBA(0, 78, 120, 255));
+                        _upload.SetColor2(RGBA(0, 78, 120, 255));
+                        _download.SetColor2(RGBA(0, 78, 120, 255));
                         SendMessage(hwnd, WM_PAINT, 0, 0);
                     }
                     else if (_exitbut.HitTest(cursor, GetWindowPos())) {
@@ -2437,6 +2753,26 @@ LRESULT CALLBACK AdentureGame::WndProc(HWND hwnd, UINT message, WPARAM wParam, L
                         play2.SetColor2(RGBA(0, 78, 120, 255));
                         play.SetColor2(RGBA(0, 78, 120, 255));
                         mapedit.SetColor2(RGBA(0, 78, 120, 255));
+                        _upload.SetColor2(RGBA(0, 78, 120, 255));
+                        _download.SetColor2(RGBA(0, 78, 120, 255));
+                        SendMessage(hwnd, WM_PAINT, 0, 0);
+                    }
+                    else if (_download.HitTest(cursor, GetWindowPos())) {
+                        _download.SetColor2(RGBA(131, 203, 242, 255));
+                        play2.SetColor2(RGBA(0, 78, 120, 255));
+                        play.SetColor2(RGBA(0, 78, 120, 255));
+                        mapedit.SetColor2(RGBA(0, 78, 120, 255));
+                        _upload.SetColor2(RGBA(0, 78, 120, 255));
+                        _exitbut.SetColor2(RGBA(0, 78, 120, 255));
+                        SendMessage(hwnd, WM_PAINT, 0, 0);
+                    }
+                    else if (_upload.HitTest(cursor, GetWindowPos())) {
+                        _upload.SetColor2(RGBA(131, 203, 242, 255));
+                        play2.SetColor2(RGBA(0, 78, 120, 255));
+                        play.SetColor2(RGBA(0, 78, 120, 255));
+                        mapedit.SetColor2(RGBA(0, 78, 120, 255));
+                        _exitbut.SetColor2(RGBA(0, 78, 120, 255));
+                        _download.SetColor2(RGBA(0, 78, 120, 255));
                         SendMessage(hwnd, WM_PAINT, 0, 0);
                     }
                     else {
@@ -2444,6 +2780,8 @@ LRESULT CALLBACK AdentureGame::WndProc(HWND hwnd, UINT message, WPARAM wParam, L
                         play2.SetColor2(RGBA(0, 78, 120, 255));
                         mapedit.SetColor2(RGBA(0, 78, 120, 255));
                         _exitbut.SetColor2(RGBA(0, 78, 120, 255));
+                        _upload.SetColor2(RGBA(0, 78, 120, 255));
+                        _download.SetColor2(RGBA(0, 78, 120, 255));
                         SendMessage(hwnd, WM_PAINT, 0, 0);
                     }
                 }
@@ -2488,6 +2826,12 @@ LRESULT CALLBACK AdentureGame::WndProc(HWND hwnd, UINT message, WPARAM wParam, L
                     }
                     else if (_exitbut.HitTest(cursor, GetWindowPos())) {
                         SendMessage(hwnd, WM_DESTROY, 0, 0);
+                    }
+                    else if (_upload.HitTest(cursor, GetWindowPos())) {
+                        CreateManagerWindow();
+                    }
+                    else if (_download.HitTest(cursor, GetWindowPos())) {
+                        DialogBox(HINST_THISCOMPONENT, MAKEINTRESOURCE(IDD_DOWNMAP), NULL, DownloadProc);
                     }
                 }
                 else if (menu2) {
@@ -2652,15 +2996,7 @@ LRESULT CALLBACK AdentureGame::WndProc(HWND hwnd, UINT message, WPARAM wParam, L
                 if (menu) {
                     if (GetAsyncKeyState(0x74) & 0x8000) {
                         //f5 pressed
-                        if (exist_read_file("map.txt")) {
-                            remove("map.txt");
-                        }
-                        if (GetMapFromServer("map.txt")) {
-                            MessageBox(NULL, L"map.txt succefully downloaded from server", L"Info", MB_OK);
-                        }
-                        else {
-                            MessageBox(NULL, L"map.txt do not downloaded from server - some error occured", L"Error", MB_OK);
-                        }
+                        DialogBox(HINST_THISCOMPONENT, MAKEINTRESOURCE(IDD_DOWNMAP), NULL, DownloadProc);
                     }
                     else if (GetAsyncKeyState(0x76) & 0x8000) {
                         //f7
@@ -2683,7 +3019,7 @@ LRESULT CALLBACK AdentureGame::WndProc(HWND hwnd, UINT message, WPARAM wParam, L
                         ZeroMemory(&ofn, sizeof(ofn));
                         ofn.lStructSize = sizeof(OPENFILENAME);
                         ofn.hwndOwner = shared;
-                        ofn.lpstrFilter = "Map files(*.txt)\0*.txt";
+                        ofn.lpstrFilter = "Map files(*.json)\0*.json";
                         ofn.lpstrFile = fileName;
                         ofn.nMaxFile = MAX_PATH;
                         ofn.Flags = OFN_EXPLORER | OFN_FILEMUSTEXIST | OFN_HIDEREADONLY;
@@ -2904,53 +3240,19 @@ LRESULT CALLBACK AdentureGame::WndProc(HWND hwnd, UINT message, WPARAM wParam, L
                         ZeroMemory(&ofn2, sizeof(ofn2));
                         ofn2.lStructSize = sizeof(OPENFILENAME);
                         ofn2.hwndOwner = shared;
-                        ofn2.lpstrFilter = "Map files(*.txt)\0*.txt";
+                        ofn2.lpstrFilter = "Map files(*.json)\0*.json";
                         ofn2.lpstrFile = fileName;
                         ofn2.nMaxFile = MAX_PATH;
                         ofn2.Flags = OFN_EXPLORER;
                         ofn2.lpstrDefExt = "";
+                        
 
                         string fileNameStr;
                         if (GetSaveFileNameA(&ofn2))
                             fileNameStr = fileName;
                         if (fileNameStr != "") {
-                            ofstream out(fileNameStr.c_str());
-                            //width, height, posx,posy, zdi, podlaha
-                            out << 10 << " " << 17 << endl;//velikost
-
-                            COORD i = find_startpos();//startpos
-                            if ((i.X != -1) && (i.Y != -1)) {
-                                out << i.X << " " << i.Y << endl;
-                            }
-                            else {
-                                out << 2 << " " << 2 << endl;
-                            }
-                            for (int _y = 0; _y < 10; _y++) {
-                                for (int _x = 0; _x < 17; _x++) {
-                                    out << zed[_y][_x] << " ";
-                                }
-                                if (_y != 9) {
-                                    out << endl;
-                                }
-                            }
-                            out << endl;
-                            for (int _y = 0; _y < 10; _y++) {
-                                for (int _x = 0; _x < 17; _x++) {
-                                    out << podlaha[_y][_x] << " ";
-                                }
-                                if (_y != 9) {
-                                    out << endl;
-                                }
-                            }
-                            for (int _y = 0; _y < 10; _y++) {
-                                for (int _x = 0; _x < 17; _x++) {
-                                    out << predmety[_y][_x] << " ";
-                                }
-                                if (_y != 9) {
-                                    out << endl;
-                                }
-                            }
-                            out.close();
+                            COORD i = find_startpos();//startpos,
+                            SaveMap(fileNameStr, i.X, i.Y);
                         }
                     }
                 }
@@ -2961,7 +3263,7 @@ LRESULT CALLBACK AdentureGame::WndProc(HWND hwnd, UINT message, WPARAM wParam, L
                     ZeroMemory(&ofn, sizeof(ofn));
                     ofn.lStructSize = sizeof(OPENFILENAME);
                     ofn.hwndOwner = shared;
-                    ofn.lpstrFilter = "Map files(*.txt)\0*.txt";
+                    ofn.lpstrFilter = "Map files(*.json)\0*.json";
                     ofn.lpstrFile = fileName;
                     ofn.nMaxFile = MAX_PATH;
                     ofn.Flags = OFN_EXPLORER | OFN_FILEMUSTEXIST | OFN_HIDEREADONLY;
@@ -2972,7 +3274,7 @@ LRESULT CALLBACK AdentureGame::WndProc(HWND hwnd, UINT message, WPARAM wParam, L
                         fileNameStr = fileName;
                     }
                     if (fileNameStr != "") {
-                        if (!LoadFile(fileNameStr)) {
+                        if (LoadMap(fileNameStr) > 0) {
                             string mes = fileNameStr + " nelze otevrit";
                             MessageBoxA(NULL, mes.c_str(), "Error", MB_OK | MB_ICONERROR);
                         }
@@ -2993,9 +3295,9 @@ LRESULT CALLBACK AdentureGame::WndProc(HWND hwnd, UINT message, WPARAM wParam, L
                     ShowWindow(shared, SW_MAXIMIZE);
                     adventure_game = true;
                     menu = false;
-                    //LoadFile("lets_go.txt");
+                    //LoadMap("lets_go.txt");
                     if (!loaded) {
-                        LoadFile("lets_go.txt");
+                        LoadMap("lets_go.json");
                     }
                     SetWindowTextA(hwnd, "Adventure Game - Fun Play");
                     SendMessage(hwnd, WM_PAINT, 0, 0);
@@ -3013,7 +3315,7 @@ LRESULT CALLBACK AdentureGame::WndProc(HWND hwnd, UINT message, WPARAM wParam, L
                 }break;
                 case ID_MENU2:
                 {
-                    //                     ShowWindow(shared, SW_MAXIMIZE);
+                    //ShowWindow(shared, SW_MAXIMIZE);
                     adventure_game = true;
                     menu = false;
                     menu2 = true;
@@ -3022,9 +3324,12 @@ LRESULT CALLBACK AdentureGame::WndProc(HWND hwnd, UINT message, WPARAM wParam, L
                 case ID_MAPEDITOR:
                 {
                     ShowWindow(shared, SW_MAXIMIZE);
+                    HICON hIcon = LoadIcon(GetModuleHandle(NULL), (MAKEINTRESOURCE(IDI_MAPMAKER)));
+                    SendMessage(hwnd, WM_SETICON, ICON_BIG, (LPARAM)hIcon);
+                    SendMessage(hwnd, WM_SETICON, ICON_SMALL, (LPARAM)hIcon);
                     adventure_game = false;
                     menu = false;
-                        LoadFile("lets_go.txt");
+                    LoadMap("lets_go.json");
                     SetWindowTextA(hwnd, "Adventure Game - Map Editor");
                     SendMessage(hwnd, WM_PAINT, 0, 0);
                 }break;
@@ -3203,51 +3508,7 @@ HRESULT AdentureGame::OnRender()
         int width = static_cast<int>(rtSize.width);
         int height = static_cast<int>(rtSize.height);
         
-#ifdef POSOUVANI_KAMERY
-        //pocet zobrazenych ctvercu - pro vetsi rychlost
-        int zobraz_sirka = round(width / 80) + 1;
-        int zobraz_vyska = round(height / 80) + 1;
 
-        int hrac_x = round(((width - 80) / 2) / 80) * 80;
-        int hrac_y = round(((height - 80) / 2) / 80) * 80;
-
-        int hrac_x2 = (hrac_x / 80) - x;
-        int hrac_y2 = (hrac_y / 80) - y;
-
-        for (int _x = 0; _x < 17; _x++) {
-            for (int _y = 0; _y < 10; _y++) {
-                if (zed[_y + y - 4][_x + x - 7] == true) {
-                    m_pRenderTarget->DrawBitmap(kamen, SRect(_x * 80, _y * 80, (_x * 80) + 80, (_y * 80) + 80), 1.0, D2D1_BITMAP_INTERPOLATION_MODE_LINEAR);
-                }
-                else if (podlaha[_y + y - 4][_x + x - 7] == typ_podlahy::trava) {
-                    m_pRenderTarget->DrawBitmap(trava, SRect(_x * 80, _y * 80, (_x * 80) + 80, (_y * 80) + 80), 1.0, D2D1_BITMAP_INTERPOLATION_MODE_LINEAR);
-                }
-                else if (podlaha[_y + y - 4][_x + x - 7] == typ_podlahy::kamen) {
-                    m_pRenderTarget->DrawBitmap(podlaha_kamen, SRect(_x * 80, _y * 80, (_x * 80) + 80, (_y * 80) + 80), 1.0, D2D1_BITMAP_INTERPOLATION_MODE_LINEAR);
-                }
-
-                if (predmety[_y + y - 4][_x + x - 7] == typ_predmetu::krystal_m) {
-                    m_pRenderTarget->DrawBitmap(krystal_m, SRect(_x * 80, _y * 80, (_x * 80) + 80, (_y * 80) + 80), 1.0, D2D1_BITMAP_INTERPOLATION_MODE_LINEAR);
-                }
-                else if (predmety[_y + y - 4][_x + x - 7] == typ_predmetu::krystal_c) {
-                    m_pRenderTarget->DrawBitmap(krystal_c, SRect(_x * 80, _y * 80, (_x * 80) + 80, (_y * 80) + 80), 1.0, D2D1_BITMAP_INTERPOLATION_MODE_LINEAR);
-                }
-                else if (predmety[_y + y - 4][_x + x - 7] == typ_predmetu::krystal_z) {
-                    m_pRenderTarget->DrawBitmap(krystal_z, SRect(_x * 80, _y * 80, (_x * 80) + 80, (_y * 80) + 80), 1.0, D2D1_BITMAP_INTERPOLATION_MODE_LINEAR);
-                }
-                else if (predmety[_y - y][_x + x - 7] == typ_predmetu::krystal_o) {
-                    m_pRenderTarget->DrawBitmap(krystal_o, SRect(_x * 80, _y * 80, (_x * 80) + 80, (_y * 80) + 80), 1.0, D2D1_BITMAP_INTERPOLATION_MODE_LINEAR);
-                }
-                else if (predmety[_y - y][_x + x - 7] == typ_predmetu::krystal_zl) {
-                    m_pRenderTarget->DrawBitmap(krystal_zl, SRect(_x * 80, _y * 80, (_x * 80) + 80, (_y * 80) + 80), 1.0, D2D1_BITMAP_INTERPOLATION_MODE_LINEAR);
-                }
-                else {
-
-                }
-            }
-        }
-        D2D1_RECT_F postava_pos = SRect(hrac_x, hrac_y, hrac_x + 80, hrac_y + 80);
-#else
         if(menu){
 
             play2.SetPos(SRect2(((width - 150) / 2), ((height - 100) / 2)-50, 150, 100));
@@ -3255,12 +3516,16 @@ HRESULT AdentureGame::OnRender()
             mapedit.SetPos(SRect2(((width - 150) / 2), ((height - 100) / 2)+200, 150, 100));
             sometext.SetPos(SRect2(((width - 600) / 2), ((height - 200) / 2) - 200, 600, 200));
             _exitbut.SetPos(SRect2(((width - 150) / 2) + 250, ((height - 100) / 2) + 200, 150, 100));
+            _download.SetPos(SRect2(((width - 150) / 2) - 300, ((height - 100) / 2) + 230, 150, 100));
+            _upload.SetPos(SRect2(((width - 150) / 2) - 300, ((height - 100) / 2) + 105, 150, 100));
 
             mapedit.Draw();
             play.Draw();
             sometext.Draw();
             play2.Draw();
             _exitbut.Draw();
+            _download.Draw();
+            _upload.Draw();
         }
         else if (menu2) {
             choose.SetPos(SRect2(((width - 600) / 2), ((height - 200) / 2) - 200, 600, 200));
@@ -3300,6 +3565,8 @@ HRESULT AdentureGame::OnRender()
                     }
                 }
             }
+#ifndef POSOUVANI_KAMERY
+
             for (int _x = 0; _x < 17; _x++) {
                 for (int _y = 0; _y < 10; _y++) {
 
@@ -3363,7 +3630,7 @@ HRESULT AdentureGame::OnRender()
             }
 
             D2D1_RECT_F postava_pos = D2D1::RectF(x * 80, y * 80, (x * 80) + 80, (y * 80) + 80);
-#endif
+
             if (adventure_game) {
                 if (mom_postava == 1) {
                     m_pRenderTarget->DrawBitmap(pos1, postava_pos, 1.0);
@@ -3378,6 +3645,51 @@ HRESULT AdentureGame::OnRender()
                     m_pRenderTarget->DrawBitmap(pos4, postava_pos, 1.0);
                 }
             }
+#else
+            //pocet zobrazenych ctvercu - pro vetsi rychlost
+            int zobraz_sirka = round(width / 80) + 1;
+            int zobraz_vyska = round(height / 80) + 1;
+
+            int hrac_x = round(((width - 80) / 2) / 80) * 80;
+            int hrac_y = round(((height - 80) / 2) / 80) * 80;
+
+            int hrac_x2 = (hrac_x / 80) - x;
+            int hrac_y2 = (hrac_y / 80) - y;
+
+            for (int _x = 0; _x < 17; _x++) {
+                for (int _y = 0; _y < 10; _y++) {
+                    if (zed[_y + y - 4][_x + x - 7] == true) {
+                        m_pRenderTarget->DrawBitmap(kamen, SRect(_x * 80, _y * 80, (_x * 80) + 80, (_y * 80) + 80), 1.0, D2D1_BITMAP_INTERPOLATION_MODE_LINEAR);
+                    }
+                    else if (podlaha[_y + y - 4][_x + x - 7] == typ_podlahy::trava) {
+                        m_pRenderTarget->DrawBitmap(trava, SRect(_x * 80, _y * 80, (_x * 80) + 80, (_y * 80) + 80), 1.0, D2D1_BITMAP_INTERPOLATION_MODE_LINEAR);
+                    }
+                    else if (podlaha[_y + y - 4][_x + x - 7] == typ_podlahy::kamen) {
+                        m_pRenderTarget->DrawBitmap(podlaha_kamen, SRect(_x * 80, _y * 80, (_x * 80) + 80, (_y * 80) + 80), 1.0, D2D1_BITMAP_INTERPOLATION_MODE_LINEAR);
+                    }
+
+                    if (predmety[_y + y - 4][_x + x - 7] == typ_predmetu::krystal_m) {
+                        m_pRenderTarget->DrawBitmap(krystal_m, SRect(_x * 80, _y * 80, (_x * 80) + 80, (_y * 80) + 80), 1.0, D2D1_BITMAP_INTERPOLATION_MODE_LINEAR);
+                    }
+                    else if (predmety[_y + y - 4][_x + x - 7] == typ_predmetu::krystal_c) {
+                        m_pRenderTarget->DrawBitmap(krystal_c, SRect(_x * 80, _y * 80, (_x * 80) + 80, (_y * 80) + 80), 1.0, D2D1_BITMAP_INTERPOLATION_MODE_LINEAR);
+                    }
+                    else if (predmety[_y + y - 4][_x + x - 7] == typ_predmetu::krystal_z) {
+                        m_pRenderTarget->DrawBitmap(krystal_z, SRect(_x * 80, _y * 80, (_x * 80) + 80, (_y * 80) + 80), 1.0, D2D1_BITMAP_INTERPOLATION_MODE_LINEAR);
+                    }
+                    else if (predmety[_y - y][_x + x - 7] == typ_predmetu::krystal_o) {
+                        m_pRenderTarget->DrawBitmap(krystal_o, SRect(_x * 80, _y * 80, (_x * 80) + 80, (_y * 80) + 80), 1.0, D2D1_BITMAP_INTERPOLATION_MODE_LINEAR);
+                    }
+                    else if (predmety[_y - y][_x + x - 7] == typ_predmetu::krystal_zl) {
+                        m_pRenderTarget->DrawBitmap(krystal_zl, SRect(_x * 80, _y * 80, (_x * 80) + 80, (_y * 80) + 80), 1.0, D2D1_BITMAP_INTERPOLATION_MODE_LINEAR);
+                    }
+                    else {
+
+                    }
+                }
+            }
+            D2D1_RECT_F postava_pos = SRect(hrac_x, hrac_y, hrac_x + 80, hrac_y + 80);
+#endif
         }
         hr = m_pRenderTarget->EndDraw();
     }
