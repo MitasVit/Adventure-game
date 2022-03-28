@@ -941,6 +941,15 @@ void LoadLevel(int level) {
     }
 }
 
+RECT ToRect(int x, int y, int width, int height) {
+    RECT pos;
+    pos.left = x;
+    pos.right = y;
+    pos.top = y+height;
+    pos.bottom = x+width;
+    return pos;
+}
+
 RECT GetWindowPos() {
     RECT pos;
     pos.left = NULL;
@@ -949,6 +958,33 @@ RECT GetWindowPos() {
     pos.bottom = NULL;
     GetWindowRect(shared, &pos);
     return pos;
+}
+
+void CreateToolTipForRect(HWND hwndParent, RECT rc)
+{
+    // Create a tooltip.
+    HWND hwndTT = CreateWindowEx(WS_EX_TOPMOST, TOOLTIPS_CLASS, NULL,
+        WS_POPUP | TTS_NOPREFIX | TTS_ALWAYSTIP,
+        CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
+        hwndParent, NULL, HINST_THISCOMPONENT, NULL);
+
+    SetWindowPos(hwndTT, HWND_TOPMOST, 0, 0, 0, 0,
+        SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
+
+    // Set up "tool" information. In this case, the "tool" is the entire parent window.
+
+    TOOLINFOA ti = { 0 };
+    ti.cbSize = sizeof(TOOLINFO);
+    ti.uFlags = TTF_SUBCLASS;
+    ti.hwnd = hwndParent;
+    ti.hinst = HINST_THISCOMPONENT;
+   // ti.rect = rc;
+    ti.lpszText = const_cast<char*>("hi");;
+
+    GetClientRect(hwndParent, &ti.rect);
+
+    // Associate the tooltip with the "tool" window.
+    SendMessage(hwndTT, TTM_ADDTOOL, 0, (LPARAM)(LPTOOLINFO)&ti);
 }
 
 class Button {
@@ -1272,8 +1308,11 @@ public:
     }
 };
 
-Button play, mapedit, play2, back, _1, _2, _exitbut, _upload, _download;
+Button play, mapedit, play2, back, _1, _2, _exitbut;
+BitmapButton _upload, _download;
 Text sometext, choose;
+
+ID2D1Bitmap* downl, * downd, * uplol, * uplod;
 
 class AdentureGame
 {
@@ -1350,6 +1389,7 @@ private:
     ID2D1Bitmap* orb_m, * orb_c, * orb_z, * orb_o, * orb_zl;//orby
     ID2D1Bitmap* peniz, * bedna, * startpos, * cihlazed;
 
+
 };
 
 AdentureGame::AdentureGame() :
@@ -1395,6 +1435,7 @@ AdentureGame::AdentureGame() :
     m_pMyBrush9(NULL),
     startpos(NULL),
     white(NULL),
+
     cihlazed(NULL)
 {
 }
@@ -1444,6 +1485,10 @@ AdentureGame::~AdentureGame()
     SafeRelease(&startpos);
     SafeRelease(&white);
     SafeRelease(&cihlazed);
+    SafeRelease(&downl);
+    SafeRelease(&downd);
+    SafeRelease(&uplod);
+    SafeRelease(&uplol);
 }
 
 
@@ -2485,6 +2530,54 @@ HRESULT AdentureGame::CreateDeviceResources()
                 &cihlazed
             );
         }
+        if (SUCCEEDED(hr))
+        {
+            hr = LoadResourceBitmap(
+                m_pRenderTarget,
+                m_pWICFactory,
+                L"uplol",
+                L"Image",
+                500,
+                500,
+                &uplol
+            );
+        }
+        if (SUCCEEDED(hr))
+        {
+            hr = LoadResourceBitmap(
+                m_pRenderTarget,
+                m_pWICFactory,
+                L"uplod",
+                L"Image",
+                500,
+                500,
+                &uplod
+            );
+        }
+        if (SUCCEEDED(hr))
+        {
+            hr = LoadResourceBitmap(
+                m_pRenderTarget,
+                m_pWICFactory,
+                L"downl",
+                L"Image",
+                500,
+                500,
+                &downl
+            );
+        }
+        if (SUCCEEDED(hr))
+        {
+            hr = LoadResourceBitmap(
+                m_pRenderTarget,
+                m_pWICFactory,
+                L"downd",
+                L"Image",
+                500,
+                500,
+                &downd
+            );
+        }
 
         sometext.SetTarget(m_pRenderTarget);
         sometext.SetColorText(m_pCornflowerBlueBrush);
@@ -2555,19 +2648,13 @@ HRESULT AdentureGame::CreateDeviceResources()
         _exitbut.SetPos(SRect2(600, 400, 200, 200));
         _exitbut.CreateFormat(m_pDWriteFactory, L"Century", 30, true);
 
-        _download.SetColor(m_pMyBrush8);
         _download.SetTarget(m_pRenderTarget);
-        _download.SetColorText(m_pBrush1);
-        _download.SetText(L"Download Map");
         _download.SetPos(SRect2(600, 400, 200, 100));
-        _download.CreateFormat(m_pDWriteFactory, L"Century", 30, true);
+        _download.SetBitmap(downd);
 
-        _upload.SetColor(m_pMyBrush9);
         _upload.SetTarget(m_pRenderTarget);
-        _upload.SetColorText(m_pBrush1);
-        _upload.SetText(L"Upload Map");
         _upload.SetPos(SRect2(600, 500, 200, 100));
-        _upload.CreateFormat(m_pDWriteFactory, L"Century", 30, true);
+        _upload.SetBitmap(uplod);
 
     }
 
@@ -2726,8 +2813,8 @@ LRESULT CALLBACK AdentureGame::WndProc(HWND hwnd, UINT message, WPARAM wParam, L
                         play2.SetColor2(RGBA(0, 78, 120, 255));
                         mapedit.SetColor2(RGBA(0, 78, 120, 255));
                         _exitbut.SetColor2(RGBA(0, 78, 120, 255));
-                        _upload.SetColor2(RGBA(0, 78, 120, 255));
-                        _download.SetColor2(RGBA(0, 78, 120, 255));
+                        _upload.SetBitmap(uplod);
+                        _download.SetBitmap(downd);
                         SendMessage(hwnd, WM_PAINT, 0, 0);
                     }
                     else if (mapedit.HitTest(cursor, GetWindowPos())) {
@@ -2735,8 +2822,8 @@ LRESULT CALLBACK AdentureGame::WndProc(HWND hwnd, UINT message, WPARAM wParam, L
                         play.SetColor2(RGBA(0, 78, 120, 255));
                         play2.SetColor2(RGBA(0, 78, 120, 255));
                         _exitbut.SetColor2(RGBA(0, 78, 120, 255));
-                        _upload.SetColor2(RGBA(0, 78, 120, 255));
-                        _download.SetColor2(RGBA(0, 78, 120, 255));
+                        _upload.SetBitmap(uplod);
+                        _download.SetBitmap(downd);
                         SendMessage(hwnd, WM_PAINT, 0, 0);
                     }
                     else if (play2.HitTest(cursor, GetWindowPos())) {
@@ -2744,8 +2831,8 @@ LRESULT CALLBACK AdentureGame::WndProc(HWND hwnd, UINT message, WPARAM wParam, L
                         play.SetColor2(RGBA(0, 78, 120, 255));
                         mapedit.SetColor2(RGBA(0, 78, 120, 255));
                         _exitbut.SetColor2(RGBA(0, 78, 120, 255));
-                        _upload.SetColor2(RGBA(0, 78, 120, 255));
-                        _download.SetColor2(RGBA(0, 78, 120, 255));
+                        _upload.SetBitmap(uplod);
+                        _download.SetBitmap(downd);
                         SendMessage(hwnd, WM_PAINT, 0, 0);
                     }
                     else if (_exitbut.HitTest(cursor, GetWindowPos())) {
@@ -2753,26 +2840,26 @@ LRESULT CALLBACK AdentureGame::WndProc(HWND hwnd, UINT message, WPARAM wParam, L
                         play2.SetColor2(RGBA(0, 78, 120, 255));
                         play.SetColor2(RGBA(0, 78, 120, 255));
                         mapedit.SetColor2(RGBA(0, 78, 120, 255));
-                        _upload.SetColor2(RGBA(0, 78, 120, 255));
-                        _download.SetColor2(RGBA(0, 78, 120, 255));
+                        _upload.SetBitmap(uplod);
+                        _download.SetBitmap(downd);
                         SendMessage(hwnd, WM_PAINT, 0, 0);
                     }
                     else if (_download.HitTest(cursor, GetWindowPos())) {
-                        _download.SetColor2(RGBA(131, 203, 242, 255));
+                        _download.SetBitmap(downl);
                         play2.SetColor2(RGBA(0, 78, 120, 255));
                         play.SetColor2(RGBA(0, 78, 120, 255));
                         mapedit.SetColor2(RGBA(0, 78, 120, 255));
-                        _upload.SetColor2(RGBA(0, 78, 120, 255));
+                        _upload.SetBitmap(uplod);
                         _exitbut.SetColor2(RGBA(0, 78, 120, 255));
                         SendMessage(hwnd, WM_PAINT, 0, 0);
                     }
                     else if (_upload.HitTest(cursor, GetWindowPos())) {
-                        _upload.SetColor2(RGBA(131, 203, 242, 255));
+                        _upload.SetBitmap(uplol);
                         play2.SetColor2(RGBA(0, 78, 120, 255));
                         play.SetColor2(RGBA(0, 78, 120, 255));
                         mapedit.SetColor2(RGBA(0, 78, 120, 255));
                         _exitbut.SetColor2(RGBA(0, 78, 120, 255));
-                        _download.SetColor2(RGBA(0, 78, 120, 255));
+                        _download.SetBitmap(downd);
                         SendMessage(hwnd, WM_PAINT, 0, 0);
                     }
                     else {
@@ -2780,8 +2867,8 @@ LRESULT CALLBACK AdentureGame::WndProc(HWND hwnd, UINT message, WPARAM wParam, L
                         play2.SetColor2(RGBA(0, 78, 120, 255));
                         mapedit.SetColor2(RGBA(0, 78, 120, 255));
                         _exitbut.SetColor2(RGBA(0, 78, 120, 255));
-                        _upload.SetColor2(RGBA(0, 78, 120, 255));
-                        _download.SetColor2(RGBA(0, 78, 120, 255));
+                        _upload.SetBitmap(uplod);
+                        _download.SetBitmap(downd);
                         SendMessage(hwnd, WM_PAINT, 0, 0);
                     }
                 }

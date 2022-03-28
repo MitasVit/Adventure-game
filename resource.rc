@@ -49,6 +49,11 @@ STARTPOS             IMAGE                    "img/startpos.png"
 
 CIHLAZED             IMAGE                    "img/zed_cihla.png"
 
+DOWNL                     IMAGE                   "img/but/download_light.png"
+DOWND                     IMAGE                   "img/but/download.png"
+UPLOL                     IMAGE                   "img/but/upload_light.png"
+UPLOD                     IMAGE                   "img/but/upload.png"
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
